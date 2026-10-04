@@ -1,5 +1,5 @@
 import type { EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
-import { getTrafficContext } from "./adapters";
+import { getTrafficContext, getTransitContext } from "./adapters";
 import { scenarios } from "./fixtures";
 import { sources } from "./sourceRegistry";
 
@@ -9,8 +9,8 @@ function unavailable<T>(source: { name: string; url: string }, caveat: string): 
 
 /**
  * The data boundary. Never throws and never invents values: traffic is live DCC
- * TRIPS when reachable, otherwise the replayed fixture. Crowding and transit are
- * fixture-only for now (transit is an explicit "unavailable" envelope). A scenario
+ * TRIPS when reachable, otherwise the replayed fixture. Transit is live NTA GTFS-R when a
+ * key is configured, otherwise "unavailable". Crowding is a saved fixture. A scenario
  * id with no fixture gets "unavailable" envelopes for every layer.
  */
 export async function loadScenarioEvidence(scenario: Scenario): Promise<ScenarioEvidence> {
@@ -25,8 +25,11 @@ export async function loadScenarioEvidence(scenario: Scenario): Promise<Scenario
     };
   }
   try {
-    const traffic = await getTrafficContext(scenario.id);
-    return { ...fixture, scenario, traffic };
+    const [traffic, transit] = await Promise.all([
+      getTrafficContext(scenario.id),
+      getTransitContext().catch(() => fixture.transit),
+    ]);
+    return { ...fixture, scenario, traffic, transit };
   } catch {
     return { ...fixture, scenario };
   }

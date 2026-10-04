@@ -2,7 +2,7 @@ import type { HistoricDemandContext, ScenarioEvidence } from "../domain/types";
 import dfbAggregate from "../../fixtures/dfb-aggregate.json";
 import { sources, tripsSample } from "./sourceRegistry";
 
-const now = "2026-10-04T10:30:00Z";
+const transitSavedAt = "2026-10-04T14:20:00Z";
 const inmoSavedAt = "2026-10-04T14:16:00Z";
 const inmoObservedDate = "2026-10-02";
 const inmoCaveat = (trolley: number, ward: number) =>
@@ -18,13 +18,13 @@ export const scenarios: Record<"a" | "b", ScenarioEvidence> = {
     scenario: { id: "a", name: "Scenario A", declaredCorridor: "Dublin 2 to northbound corridor", namedHospital: "Beaumont Hospital" },
     traffic: { source: sources.trips.name, sourceUrl: sources.trips.url, status: "replayed", retrievedAt: tripsSampleSavedAt, observedAt: tripsSample.observedDate, caveat: sampleCaveat(16, 6), data: { corridor: "TRIPS route 16 (provisional proxy corridor)", direction: "Direction 1", journeyMinutes: 2.4 } },
     crowding: { source: sources.inmo.name, sourceUrl: sources.inmo.url, status: "replayed", retrievedAt: inmoSavedAt, observedAt: inmoObservedDate, caveat: inmoCaveat(37, 0), data: { hospital: "Beaumont Hospital", patientsWaitingForBeds: 37, publishedDate: inmoObservedDate } },
-    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: now, caveat: "GTFS Realtime API key not configured. This is not used as a road-speed estimate." },
+    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: transitSavedAt, caveat: "No NTA GTFS-R reading captured in this saved fixture, so transit context is not shown. Never used as a road-speed or congestion estimate." },
   },
   b: {
     scenario: { id: "b", name: "Scenario B", declaredCorridor: "Dublin 2 to westbound corridor", namedHospital: "St James's Hospital" },
     traffic: { source: sources.trips.name, sourceUrl: sources.trips.url, status: "replayed", retrievedAt: tripsSampleSavedAt, observedAt: tripsSample.observedDate, caveat: sampleCaveat(37, 7), data: { corridor: "TRIPS route 37 (provisional proxy corridor)", direction: "Direction 1", journeyMinutes: 18.3 } },
     crowding: { source: sources.inmo.name, sourceUrl: sources.inmo.url, status: "replayed", retrievedAt: inmoSavedAt, observedAt: inmoObservedDate, caveat: inmoCaveat(10, 0), data: { hospital: "St James's Hospital", patientsWaitingForBeds: 10, publishedDate: inmoObservedDate } },
-    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: now, caveat: "GTFS Realtime API key not configured. This is not used as a road-speed estimate." },
+    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: transitSavedAt, caveat: "No NTA GTFS-R reading captured in this saved fixture, so transit context is not shown. Never used as a road-speed or congestion estimate." },
   },
 };
 

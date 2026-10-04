@@ -27,6 +27,16 @@ export const tripsLiveFeed = {
   proxiedPath: "/trips/TrafficOpenData/CP_TR/trips.csv",
 } as const;
 
+/**
+ * NTA GTFS-Realtime v2 (JSON). Fetched through the /gtfsr proxy in vite.config.ts, which
+ * adds the x-api-key header server-side. header.timestamp is Unix epoch seconds; the feed
+ * carries trip_update entities and publishes no service alerts.
+ */
+export const gtfsrFeed = {
+  upstream: "https://api.nationaltransport.ie/gtfsr/v2/gtfsr?format=json",
+  proxiedPath: "/gtfsr/v2/gtfsr?format=json",
+} as const;
+
 /** Saved snapshot behind the replayed traffic fixture (fixtures/trips-2015-sample.csv). */
 export const tripsSample = {
   label: "2015 sample, saved snapshot",
