@@ -17,3 +17,23 @@ export const sources = {
   },
 } as const;
 
+/**
+ * Live TRIPS feed (updated every minute per the dataset notes). Fetched through
+ * the Vite proxy at /trips (see vite.config.ts) because the host sends no CORS headers.
+ * Columns: Timestamp,Route,Link,Direction,STT,AccSTT,TCS1,TCS2 (STT/AccSTT in seconds).
+ */
+export const tripsLiveFeed = {
+  upstream: "https://opendata.dublincity.ie/TrafficOpenData/CP_TR/trips.csv",
+  proxiedPath: "/trips/TrafficOpenData/CP_TR/trips.csv",
+} as const;
+
+/**
+ * Which TRIPS route/direction stands in for each declared corridor.
+ * Provisional: chosen from routes.csv geometry (route 16 dir 1 starts ~0.7 km from
+ * St Stephen's Green and runs north; route 37 dir 1 starts ~0.9 km away and runs west).
+ * The team should confirm these before quoting them.
+ */
+export const tripsCorridorRoutes: Record<"a" | "b", { route: number; direction: number }> = {
+  a: { route: 16, direction: 1 },
+  b: { route: 37, direction: 1 },
+};
