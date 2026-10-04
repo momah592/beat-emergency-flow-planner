@@ -10,15 +10,17 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.22",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "leaflet": "^1.9.4",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/node": "latest",
     "typescript": "latest",
     "vitest": "latest"
   }

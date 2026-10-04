@@ -23,3 +23,12 @@ export const dfbContext: HistoricDemandContext = {
   note: "Historical DFB context placeholder. Replace only with a documented aggregate from the public dataset; it is not live incident demand.",
 };
 
+
+/**
+ * The declared Scenario A/B inputs, split out from their evidence so the UI can
+ * hold and later edit the declaration without importing evidence or adapters.
+ */
+export const declaredScenarios = {
+  a: scenarios.a.scenario,
+  b: scenarios.b.scenario,
+} as const;

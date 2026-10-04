@@ -3,12 +3,12 @@ import type { ScenarioEvidence } from "../domain/types";
 export function ScenarioColumn({ evidence }: { evidence: ScenarioEvidence }) {
   return (
     <section className="scenario-column">
-      <p className="eyebrow">Declared pathway</p>
+      <p className="eyebrow">Candidate hospital</p>
       <h3>{evidence.scenario.name}</h3>
-      <p>{evidence.scenario.declaredCorridor}</p>
+      <p>{evidence.scenario.namedHospital}</p>
       <div className="metric"><span>Observed corridor journey</span><strong>{evidence.traffic.data ? `${evidence.traffic.data.journeyMinutes} min` : "Unavailable"}</strong></div>
-      <div className="metric"><span>Published bed-wait context</span><strong>{evidence.crowding.data ? `${evidence.crowding.data.patientsWaitingForBeds} patients` : "Unavailable"}</strong></div>
-      <p className="small">The bed-wait figure is not an ED wait time, hospital capacity statement or destination recommendation.</p>
+      <div className="metric"><span>Published trolley count</span><strong>{evidence.crowding.data ? `${evidence.crowding.data.patientsWaitingForBeds} patients` : "Unavailable"}</strong></div>
+      <p className="small">A published daily trolley count. Not an ED wait time and not a live capacity reading.</p>
     </section>
   );
 }
