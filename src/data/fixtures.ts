@@ -1,4 +1,5 @@
 import type { HistoricDemandContext, ScenarioEvidence } from "../domain/types";
+import dfbAggregate from "../../fixtures/dfb-aggregate.json";
 import { sources, tripsSample } from "./sourceRegistry";
 
 const now = "2026-10-04T10:30:00Z";
@@ -24,7 +25,6 @@ export const scenarios: Record<"a" | "b", ScenarioEvidence> = {
 };
 
 export const dfbContext: HistoricDemandContext = {
-  area: "Dublin 2",
-  note: "Historical DFB context placeholder. Replace only with a documented aggregate from the public dataset; it is not live incident demand.",
+  area: "All DFB station areas",
+  note: dfbAggregate.caveat,
 };
-
