@@ -51,9 +51,9 @@ export function tripsEnvelopeFromCsv(
     retrievedAt,
     // The feed's Timestamp (e.g. 20261004-1407) carries no timezone, so observedAt and
     // freshnessSeconds are deliberately left undefined rather than guessed.
-    caveat: `Live TRIPS route ${route} direction ${direction}: accumulated travel time over ${latest.length} reported links, source timestamp ${latestTimestamp} (no timezone given). Provisional route mapping for the declared corridor.`,
+    caveat: `Live TRIPS route ${route} direction ${direction}: accumulated travel time over ${latest.length} reported links, source timestamp ${latestTimestamp} (no timezone given). Corridor is a provisional proxy corridor.`,
     data: {
-      corridor: `TRIPS route ${route}`,
+      corridor: `TRIPS route ${route} (provisional proxy corridor)`,
       direction: `Direction ${direction}`,
       journeyMinutes: Math.round((lastLink.accSeconds / 60) * 10) / 10,
     },
