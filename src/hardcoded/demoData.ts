@@ -27,7 +27,7 @@ export type HardcodedScenario = {
 }
 
 export const hardcodedDemo = {
-  product: "Beat",
+  product: "Healthy Traffic",
   subtitle: "Dublin Emergency Flow Simulator",
   incident: {
     title: "Simulated high-acuity incident in Tallaght",
@@ -156,7 +156,7 @@ export const hardcodedDemo = {
     keyMetric:
       "How much avoidable delay could system planners identify under different traffic-and-capacity scenarios?",
     tradeoff:
-      "Nearest pathway is 6 minutes faster on the declared corridor, but carries a substantially higher published patients-waiting-for-beds context (41 vs 19). Beat surfaces that traffic-and-capacity tension for planner review.",
+      "Nearest pathway is 6 minutes faster on the declared corridor, but carries a substantially higher published patients-waiting-for-beds context (41 vs 19). Healthy Traffic surfaces that traffic-and-capacity tension for planner review.",
   },
   brief: {
     title: "Auditable planning brief",

@@ -27,7 +27,7 @@ function gtfsrProxy(keys: GtfsrKeys): Plugin {
     res.end(result.body);
   };
   return {
-    name: "beat-gtfsr-proxy",
+    name: "healthy-traffic-gtfsr-proxy",
     configureServer(server) {
       server.middlewares.use(handler);
     },

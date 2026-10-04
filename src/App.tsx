@@ -37,7 +37,7 @@ const LiveBeatApp = () => {
     <main>
       <header className="hero">
         <p className="eyebrow">Build for Ireland</p>
-        <h1>Beat</h1>
+        <h1>Healthy Traffic</h1>
         <p className="lede">A unit is on scene. Which hospital, and what does the evidence say?</p>
         <p className="warning">
           Prototype on public data. Journey times are general traffic observations, not blue-light response estimates.

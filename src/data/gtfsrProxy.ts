@@ -5,7 +5,7 @@
 export const GTFSR_UPSTREAM = "https://api.nationaltransport.ie";
 export const GTFSR_AUTH_HEADER = "x-api-key";
 /** Response header telling the client the server has no key configured. */
-export const GTFSR_REASON_HEADER = "x-beat-gtfsr-reason";
+export const GTFSR_REASON_HEADER = "x-healthy-traffic-gtfsr-reason";
 
 export type GtfsrKeys = { primary?: string; secondary?: string };
 export type GtfsrProxyResult = { status: number; body: string; contentType: string; reason?: "missing-key" | "upstream-unreachable" };

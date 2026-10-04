@@ -1,4 +1,4 @@
-# AGENTS.md — Beat: Dublin Emergency Flow Simulator
+# AGENTS.md — Healthy Traffic: Dublin Emergency Flow Simulator
 
 Instructions for humans and coding agents working in this repo.
 Read this before changing product behaviour, copy, data adapters, or the comparison engine.
@@ -11,7 +11,7 @@ Related files:
 
 ## Product definition (locked)
 
-**Beat** is a **Dublin Emergency Flow Simulator**.
+**Healthy Traffic** is a **Dublin Emergency Flow Simulator**.
 
 Given a **simulated incident location**, it shows how **live road conditions** and **hospital crowding** might affect the wider emergency pathway, while keeping the **final routing decision explicitly with dispatch / clinical teams**.
 
@@ -60,7 +60,7 @@ An emergency-system planner, hospital-flow coordinator, or city operations lead 
 
 ## Non-negotiable scope boundary
 
-Beat is a planning and communications prototype.
+Healthy Traffic is a planning and communications prototype.
 
 | Do | Do not |
 | --- | --- |

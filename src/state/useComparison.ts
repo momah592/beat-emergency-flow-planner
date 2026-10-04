@@ -24,8 +24,10 @@ export function useComparison(incidentId: string): ComparisonState {
     const load = async () => {
       const incident = incidentById(incidentId);
       const [first, second] = incident.candidateHospitalIds;
-      const a = buildScenarioEvidence(incident, first, "a");
-      const b = buildScenarioEvidence(incident, second, "b");
+      const [a, b] = await Promise.all([
+        buildScenarioEvidence(incident, first, "a"),
+        buildScenarioEvidence(incident, second, "b"),
+      ]);
       return { incident, result: compareScenarios(a, b) };
     };
 

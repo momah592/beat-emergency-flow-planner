@@ -109,12 +109,22 @@ export function FleetMap({ incident, result, suggested }: Props) {
     }
 
     const [a, b] = result.scenarios;
-    const slots: { slot: "a" | "b"; hospitalId: string; minutes?: number }[] = [
-      { slot: "a", hospitalId: incident.candidateHospitalIds[0], minutes: a.traffic.data?.journeyMinutes },
-      { slot: "b", hospitalId: incident.candidateHospitalIds[1], minutes: b.traffic.data?.journeyMinutes },
+    const slots: { slot: "a" | "b"; hospitalId: string; minutes?: number; waiting?: number }[] = [
+      {
+        slot: "a",
+        hospitalId: incident.candidateHospitalIds[0],
+        minutes: a.traffic.data?.journeyMinutes,
+        waiting: a.crowding.data?.patientsWaitingForBeds,
+      },
+      {
+        slot: "b",
+        hospitalId: incident.candidateHospitalIds[1],
+        minutes: b.traffic.data?.journeyMinutes,
+        waiting: b.crowding.data?.patientsWaitingForBeds,
+      },
     ];
 
-    for (const { slot, hospitalId, minutes } of slots) {
+    for (const { slot, hospitalId, minutes, waiting } of slots) {
       const hospital = HOSPITALS[hospitalId];
       const isSuggested = suggested === slot;
 
@@ -137,7 +147,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
         L.marker(hospital.position, {
           icon: L.divIcon({
             className: "map-pin",
-            html: `<span class="pin pin-hospital ${sideClass(incident.position, hospital.position)} ${isSuggested ? "pin-suggested" : ""}">${hospital.shortName}<em>${minutes === undefined ? "no observed time" : `${minutes} min · ${hospital.trolleyCount} on trolleys`}</em></span>`,
+            html: `<span class="pin pin-hospital ${sideClass(incident.position, hospital.position)} ${isSuggested ? "pin-suggested" : ""}">${hospital.shortName}<em>${minutes === undefined ? "no observed data" : `${minutes} min${waiting === undefined ? "" : ` · ${waiting} waiting`}`}</em></span>`,
             iconSize: [0, 0],
           }),
         }).addTo(instance),

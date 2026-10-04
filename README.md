@@ -1,8 +1,8 @@
-# Beat
+# Healthy Traffic
 
-Beat is a **hospital routing prototype** for Build for Ireland.
+Healthy Traffic is a **hospital routing prototype** for Build for Ireland.
 
-Ambulances are positioned around Dublin city centre. When a unit is on scene with a patient, Beat compares the two
+Ambulances are positioned around Dublin city centre. When a unit is on scene with a patient, Healthy Traffic compares the two
 hospitals in range using public data — observed corridor journey time and published trolley counts — and suggests which
 one to run to, drawn on a map.
 

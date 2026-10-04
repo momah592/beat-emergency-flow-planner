@@ -12,8 +12,12 @@ export type Hospital = {
   name: string;
   shortName: string;
   position: LatLng;
-  /** Published daily trolley count. Not an ED waiting time, not live capacity. */
-  trolleyCount: number;
+  /**
+   * The scenario in src/data/fixtures.ts whose DCC TRIPS corridor and published
+   * INMO figure describe this pathway. Absent when no public source covers it,
+   * in which case the hospital has no evidence rather than invented numbers.
+   */
+  dataSlot?: "a" | "b";
 };
 
 export type Incident = {
@@ -25,6 +29,4 @@ export type Incident = {
   ambulanceId: string;
   /** The two hospitals in range, compared as Scenario A and Scenario B. */
   candidateHospitalIds: [string, string];
-  /** Observed corridor journey minutes from the scene, keyed by hospital id. */
-  journeyMinutes: Record<string, number>;
 };
