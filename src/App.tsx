@@ -7,6 +7,7 @@ import { ScenarioColumn } from "./components/ScenarioColumn";
 import type { ComparisonResult } from "./domain/types";
 import { DEFAULT_INCIDENT_ID, INCIDENTS } from "./fleet/fixtures";
 import type { Incident } from "./fleet/types";
+import { HardcodedDemo } from "./hardcoded/HardcodedDemo";
 import { useComparison } from "./state/useComparison";
 
 const LAYERS = [
@@ -15,10 +16,22 @@ const LAYERS = [
   { key: "transit", title: "Transit context" },
 ] as const;
 
+const shouldShowHardcodedDemo = () =>
+  typeof window !== "undefined"
+  && new URLSearchParams(window.location.search).get("demo") === "hardcoded"
+
 export default function App() {
-  const [incidentId, setIncidentId] = useState(DEFAULT_INCIDENT_ID);
-  const state = useComparison(incidentId);
-  const brief = state.phase === "ready" ? createPlanningBrief(state.result) : undefined;
+  if (shouldShowHardcodedDemo()) {
+    return <HardcodedDemo />
+  }
+
+  return <LiveBeatApp />
+}
+
+const LiveBeatApp = () => {
+  const [incidentId, setIncidentId] = useState(DEFAULT_INCIDENT_ID)
+  const state = useComparison(incidentId)
+  const brief = state.phase === "ready" ? createPlanningBrief(state.result) : undefined
 
   return (
     <main>
@@ -67,8 +80,6 @@ export default function App() {
           <span><i className="legend-scene" /> Scene</span>
           <span><i className="legend-dot" /> Available unit</span>
         </div>
-
-
       </section>
 
       {state.phase === "error" && (
@@ -81,7 +92,7 @@ export default function App() {
 
       {state.phase === "ready" && brief && <Readout incident={state.incident} result={state.result} brief={brief} />}
     </main>
-  );
+  )
 }
 
 function Readout({
