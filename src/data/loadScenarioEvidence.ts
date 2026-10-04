@@ -1,24 +1,36 @@
-import type { Scenario, ScenarioEvidence } from "../domain/types";
-import { getTrafficContext } from "./adapters";
+import type { EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
+import { getTrafficContext, getTransitContext } from "./adapters";
 import { scenarios } from "./fixtures";
+import { sources } from "./sourceRegistry";
+
+function unavailable<T>(source: { name: string; url: string }, caveat: string): EvidenceEnvelope<T> {
+  return { source: source.name, sourceUrl: source.url, status: "unavailable", retrievedAt: new Date().toISOString(), caveat };
+}
 
 /**
- * The single data boundary for the app. Owned by P1 (data adapters).
- *
- * Contract: never throws, never invents a value. On any failure it degrades to
- * the saved fixture envelope, which is already marked `status: "replayed"`.
- * Callers therefore never need a try/catch, and the demo renders with wifi off.
- *
- * P1 replaces one layer at a time: as each adapter lands, swap it in below and
- * leave the others reading from the fixture.
+ * The data boundary. Never throws and never invents values: traffic is live DCC
+ * TRIPS when reachable, otherwise the replayed fixture. Transit is live NTA GTFS-R when a
+ * key is configured, otherwise "unavailable". Crowding is a saved fixture. A scenario
+ * id with no fixture gets "unavailable" envelopes for every layer.
  */
 export async function loadScenarioEvidence(scenario: Scenario): Promise<ScenarioEvidence> {
-  const fallback = scenarios[scenario.id];
-
+  const fixture = scenarios[scenario.id];
+  if (!fixture) {
+    const caveat = `No evidence is configured for scenario "${String(scenario.id)}".`;
+    return {
+      scenario,
+      traffic: unavailable(sources.trips, caveat),
+      crowding: unavailable(sources.inmo, caveat),
+      transit: unavailable(sources.gtfs, caveat),
+    };
+  }
   try {
-    const traffic = await getTrafficContext(scenario.id);
-    return { ...fallback, scenario, traffic };
+    const [traffic, transit] = await Promise.all([
+      getTrafficContext(scenario.id),
+      getTransitContext().catch(() => fixture.transit),
+    ]);
+    return { ...fixture, scenario, traffic, transit };
   } catch {
-    return { ...fallback, scenario };
+    return { ...fixture, scenario };
   }
 }

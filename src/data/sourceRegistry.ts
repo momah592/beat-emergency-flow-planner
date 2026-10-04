@@ -17,3 +17,42 @@ export const sources = {
   },
 } as const;
 
+/**
+ * Live TRIPS feed (updated every minute per the dataset notes). Fetched through
+ * the Vite proxy at /trips (see vite.config.ts) because the host sends no CORS headers.
+ * Columns: Timestamp,Route,Link,Direction,STT,AccSTT,TCS1,TCS2 (STT/AccSTT in seconds).
+ */
+export const tripsLiveFeed = {
+  upstream: "https://opendata.dublincity.ie/TrafficOpenData/CP_TR/trips.csv",
+  proxiedPath: "/trips/TrafficOpenData/CP_TR/trips.csv",
+} as const;
+
+/**
+ * NTA GTFS-Realtime v2 (JSON). Fetched through the /gtfsr proxy in vite.config.ts, which
+ * adds the x-api-key header server-side. header.timestamp is Unix epoch seconds; the feed
+ * carries trip_update entities and publishes no service alerts.
+ */
+export const gtfsrFeed = {
+  upstream: "https://api.nationaltransport.ie/gtfsr/v2/gtfsr?format=json",
+  proxiedPath: "/gtfsr/v2/gtfsr?format=json",
+} as const;
+
+/** Saved snapshot behind the replayed traffic fixture (fixtures/trips-2015-sample.csv). */
+export const tripsSample = {
+  label: "2015 sample, saved snapshot",
+  proxyLabel: "provisional proxy corridor",
+  file: "fixtures/trips-2015-sample.csv",
+  rawTimestamp: "20151120-1606",
+  observedDate: "2015-11-20",
+} as const;
+
+/**
+ * Which TRIPS route/direction stands in for each declared corridor.
+ * Provisional proxy corridor: chosen from routes.csv geometry (route 16 dir 1 starts ~0.7 km from
+ * St Stephen's Green and runs north; route 37 dir 1 starts ~0.9 km away and runs west).
+ * The team should confirm these before quoting them.
+ */
+export const tripsCorridorRoutes: Record<"a" | "b", { route: number; direction: number }> = {
+  a: { route: 16, direction: 1 },
+  b: { route: 37, direction: 1 },
+};

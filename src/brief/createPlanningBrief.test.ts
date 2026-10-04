@@ -63,11 +63,16 @@ describe("brief traceability", () => {
 describe("brief content", () => {
   it("names the shorter corridor and suggests it", () => {
     const { a, b } = evidenceVariants()[0];
-    const brief = createPlanningBrief(compareScenarios(a, b));
+    const result = compareScenarios(a, b);
+    const brief = createPlanningBrief(result);
     const corridor = brief.claims.find((claim) => claim.id === "corridor-journey")!;
-    expect(corridor.statement).toContain("Scenario A");
-    expect(corridor.statement).toContain("5 minutes");
-    expect(brief.recommendation.pathwayId).toBe("a");
+    const lead = result.trafficLead === "a" ? a : b;
+
+    // Derived from the fixtures rather than hardcoded, so real public-data
+    // values can change without breaking the test.
+    expect(corridor.statement).toContain(lead.scenario.name);
+    expect(corridor.statement).toContain(`${result.trafficDeltaMinutes} minute`);
+    expect(brief.recommendation.pathwayId).toBe(result.trafficLead);
   });
 
   it("drops the transit claim when no transit feed returned data", () => {
@@ -92,8 +97,10 @@ describe("brief content", () => {
 
   it("singularises a one-minute difference", () => {
     const { a, b } = evidenceVariants()[0];
-    const nudged = { ...b, traffic: { ...b.traffic, data: { ...b.traffic.data!, journeyMinutes: 15 } } };
+    const minutes = a.traffic.data!.journeyMinutes;
+    const nudged = { ...b, traffic: { ...b.traffic, data: { ...b.traffic.data!, journeyMinutes: minutes + 1 } } };
     const brief = createPlanningBrief(compareScenarios(a, nudged));
     expect(brief.claims[0].statement).toContain("1 minute.");
+    expect(brief.claims[0].statement).not.toContain("1 minutes");
   });
 });
