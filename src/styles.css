@@ -140,6 +140,38 @@ main { width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56
 .diff-note { grid-column: 1 / -1; margin: 0; font-size: .76rem; color: var(--muted); }
 .notice { padding: 20px; }
 
+/* Plain-language helpers */
+.howto { margin-top: 14px; font-size: .88rem; max-width: 640px; }
+.howto summary { cursor: pointer; font-weight: 600; color: var(--road); list-style: none; }
+.howto summary::before { content: "ⓘ "; }
+.howto ol { margin: 10px 0 0; padding-left: 20px; color: var(--ink-2); display: grid; gap: 6px; line-height: 1.5; }
+.hint { color: var(--muted); font-weight: 400; }
+
+/* Data status strip */
+.strip { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.strip-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.strip-head .eyebrow { margin: 0; }
+.link-btn { border: 0; background: none; padding: 0; font: inherit; font-size: .78rem; font-weight: 600; color: var(--road); cursor: pointer; }
+.strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.chip i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip em { font-style: normal; font-weight: 500; opacity: .85; text-transform: capitalize; }
+.chip.live { background: var(--ok-bg); color: var(--ok-fg); }
+.chip.replayed { background: var(--warn-bg); color: var(--warn-fg); }
+.chip.unavailable { background: var(--bad-bg); color: var(--bad-fg); }
+
+/* Collapsible sections */
+.fold > summary { cursor: pointer; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+.fold-title::before { content: "▸"; font-size: .8rem; color: var(--muted); transition: transform .15s; }
+.fold[open] > summary > .fold-title::before { transform: rotate(90deg); }
+.fold-sub { font-size: .82rem; color: var(--muted); padding-left: 22px; }
+.fold > .evidence-grid { margin-top: 14px; }
+.fold-inner { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface-2); }
+.fold-inner .fold-title { font-size: .95rem; }
+.fold-inner > :not(summary) { margin-top: 12px; }
+
 /* Blocks: evidence and brief */
 .block { margin-top: 36px; }
 .block-head { margin-bottom: 14px; }
@@ -164,9 +196,8 @@ dd { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .brief { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; }
 .brief .section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 4px; }
 .brief .section-heading h2 { margin-bottom: 0; }
-.brief h3 { margin: 24px 0 10px; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .brief.abstained { border-color: var(--bad-fg); }
-.summary { border-radius: 12px; padding: 18px 20px; background: var(--road-soft); border: 1px solid transparent; }
+.summary { border-radius: 12px; padding: 18px 20px; margin-top: 14px; background: var(--road-soft); border: 1px solid transparent; }
 .summary-abstain { background: var(--warn-bg); border-color: var(--warn-line); }
 .summary-headline { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 6px; }
 .summary-detail { margin: 0; color: var(--ink-2); line-height: 1.6; max-width: 80ch; }
@@ -180,7 +211,7 @@ dd { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 .basis a { font-size: .8rem; }
 .basis .status { font-size: .66rem; padding: 2px 8px; }
 .basis-time { color: var(--muted); font-size: .74rem; font-variant-numeric: tabular-nums; }
-.uncertainty { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 12px; padding: 6px 20px; }
+.uncertainty { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 12px; padding: 4px 18px; }
 .uncertainty ul, .limits ul { margin: 10px 0; padding-left: 18px; display: grid; gap: 8px; }
 .uncertainty li { color: var(--warn-fg); font-size: .84rem; line-height: 1.5; }
 .uncertainty strong { color: var(--warn-fg); }

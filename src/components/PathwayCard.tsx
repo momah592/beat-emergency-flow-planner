@@ -21,7 +21,7 @@ export function PathwayCard({ evidence, accent }: { evidence: ScenarioEvidence; 
       <div className="panels">
         <div className="panel panel-road">
           <div className="panel-top"><span>Road context</span><span className={`status ${traffic.status}`}>{statusLabel(traffic.status)}</span></div>
-          <p className="panel-label">Corridor journey time</p>
+          <p className="panel-label">Road journey time</p>
           {traffic.data
             ? <p className="figure">{traffic.data.journeyMinutes}<small> min</small></p>
             : <p className="figure figure-empty">Unavailable</p>}
@@ -30,7 +30,7 @@ export function PathwayCard({ evidence, accent }: { evidence: ScenarioEvidence; 
 
         <div className="panel panel-crowding">
           <div className="panel-top"><span>Crowding context</span><span className={`status ${crowding.status}`}>{statusLabel(crowding.status)}</span></div>
-          <p className="panel-label">Published bed-wait context</p>
+          <p className="panel-label">Patients waiting for beds <span className="hint">(published daily count, not ED wait time)</span></p>
           {crowding.data ? (
             <>
               <p className="figure">{crowding.data.patientsWaitingForBeds}<small> patients waiting for beds</small></p>
@@ -45,7 +45,6 @@ export function PathwayCard({ evidence, accent }: { evidence: ScenarioEvidence; 
         </div>
       </div>
 
-      <p className="small">A published daily count of patients waiting for beds. Not an ED wait time, a hospital capacity statement or a destination recommendation.</p>
     </article>
   );
 }

@@ -14,7 +14,7 @@ import { useComparison } from "./state/useComparison";
 const BANNER =
   "Simulated planning comparison only. Not for ambulance dispatch, hospital selection, triage or clinical decision-making. Final decisions rest with dispatch and clinical teams.";
 
-const DEMO_QUESTION = "Which of two pre-declared pathways shows lower planning friction right now, and what evidence drove that?";
+const DEMO_QUESTION = "Which of the two pathways has lower planning friction right now, and what evidence drove that?";
 
 const shouldShowHardcodedDemo = () =>
   typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "hardcoded";
@@ -54,6 +54,15 @@ const LiveBeatApp = () => {
             <p className="eyebrow">Simulated incident · fixed demonstration scene</p>
             <h1>High-acuity incident, {active.label}</h1>
             <p className="question">{DEMO_QUESTION}</p>
+            <details className="howto">
+              <summary>How to read this page</summary>
+              <ol>
+                <li>Pick a simulated incident. The map shows the two pathways being compared.</li>
+                <li>Each pathway card shows <strong>road time</strong> and <strong>hospital crowding</strong> separately. They are never added together.</li>
+                <li>Every figure says where it came from and how old it is. “Unavailable” means we have no data. Nothing is estimated.</li>
+                <li>This is a planning simulation. People decide, not this page.</li>
+              </ol>
+            </details>
           </div>
           <div className="intro-side">
             <div className="segmented" role="group" aria-label="Simulated incident location">
@@ -132,9 +141,42 @@ function Pathways({ incident, result }: { incident: Incident; result: Comparison
           <span>Bed-wait difference</span>
           <strong>{result.crowdingDifference !== undefined ? `${Math.abs(result.crowdingDifference)} patients` : "n/a"}</strong>
         </div>
-        <p className="diff-note">Differences only, no pick. Road and crowding are never combined into one score.</p>
+        <p className="diff-note">Differences only, no pick. Bed-wait context is a published daily count of patients waiting for beds, not an ED wait time or hospital capacity.</p>
       </div>
+      <StatusStrip result={result} />
     </>
+  );
+}
+
+const openEvidence = () => {
+  const el = document.getElementById("evidence") as HTMLDetailsElement | null;
+  if (el) { el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+};
+
+function StatusStrip({ result }: { result: ComparisonResult }) {
+  const [a, b] = result.scenarios;
+  const chips: { label: string; status: string }[] = [
+    { label: "Road A", status: a.traffic.status },
+    { label: "Road B", status: b.traffic.status },
+    { label: "Crowding A", status: a.crowding.status },
+    { label: "Crowding B", status: b.crowding.status },
+    { label: "Transit", status: a.transit.status },
+    { label: "History", status: result.historicDemand.status },
+  ];
+  return (
+    <div className="strip">
+      <div className="strip-head">
+        <span className="eyebrow">Data status</span>
+        <button type="button" className="link-btn" onClick={openEvidence}>See sources</button>
+      </div>
+      <ul>
+        {chips.map((chip) => (
+          <li key={chip.label} className={`chip ${chip.status}`}>
+            <i />{chip.label}<em>{chip.status === "replayed" ? "saved" : chip.status}</em>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -156,11 +198,11 @@ function Detail({ result }: { result: ComparisonResult }) {
 
   return (
     <>
-      <section className="block">
-        <div className="block-head">
-          <h2>Evidence trail</h2>
-          <p className="small">Every signal with its source, status, observed and retrieval time. “Not supplied” is a valid value.</p>
-        </div>
+      <details className="block fold" id="evidence">
+        <summary>
+          <span className="fold-title">Evidence trail</span>
+          <span className="fold-sub">Source, status and timestamps for every signal</span>
+        </summary>
         <div className="evidence-grid">
           <EvidenceCard title="Road: Scenario A" role="Core road-corridor journey time" evidence={a.traffic} />
           <EvidenceCard title="Road: Scenario B" role="Core road-corridor journey time" evidence={b.traffic} />
@@ -175,7 +217,7 @@ function Detail({ result }: { result: ComparisonResult }) {
             />
           )}
         </div>
-      </section>
+      </details>
 
       <BriefPanel brief={brief} />
     </>

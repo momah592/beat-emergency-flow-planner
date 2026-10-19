@@ -1,6 +1,8 @@
+import { getTransitContext } from "../data/adapters";
+import { inmoEnvelopeFor } from "../data/fixtures";
 import { loadScenarioEvidence } from "../data/loadScenarioEvidence";
 import { sources } from "../data/sourceRegistry";
-import type { CrowdingContext, EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
+import type { EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
 import { HOSPITALS } from "./fixtures";
 import type { Incident, LatLng } from "./types";
 
@@ -37,8 +39,9 @@ export async function buildScenarioEvidence(
     return {
       scenario,
       traffic: unavailable(sources.trips, retrievedAt),
-      crowding: unavailable(sources.inmo, retrievedAt),
-      transit: unavailable(sources.gtfs, retrievedAt),
+      crowding: inmoEnvelopeFor(hospital.name),
+      // The NTA feed is network-wide, so it does not depend on which hospital has a mapped corridor.
+      transit: await getTransitContext(),
     };
   }
 
@@ -50,14 +53,8 @@ export async function buildScenarioEvidence(
     ? { ...evidence.traffic, caveat: `${note} ${evidence.traffic.caveat}` }
     : evidence.traffic;
 
-  // A slot's crowding figure belongs to the hospital it was published for. If this hospital
-  // is not that one, show it as unavailable rather than another hospital's number.
-  const crowding = evidence.crowding.data && evidence.crowding.data.hospital !== hospital.name
-    ? {
-        ...unavailable<CrowdingContext>(sources.inmo, evidence.crowding.retrievedAt),
-        caveat: `No INMO Trolley Watch figure is captured for ${hospital.name}, so no bed-wait context is shown for this pathway. Not estimated.`,
-      }
-    : evidence.crowding;
+  // Crowding is looked up by hospital name, so a figure is only ever shown for the hospital it was published for.
+  const crowding = inmoEnvelopeFor(hospital.name);
 
   return { ...evidence, scenario, traffic, crowding };
 }

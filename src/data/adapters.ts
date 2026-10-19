@@ -4,6 +4,40 @@ import { GTFSR_REASON_HEADER } from "./gtfsrProxy";
 import { gtfsrFeed, sources, tripsCorridorRoutes, tripsLiveFeed } from "./sourceRegistry";
 
 const FETCH_TIMEOUT_MS = 4000;
+/** Successful feed responses are reused this long; failures only briefly, so recovery is quick. */
+const CACHE_OK_MS = 60_000;
+const CACHE_FAIL_MS = 10_000;
+
+type CacheEntry = { expires: number; value: Promise<unknown> };
+const cache = new Map<string, CacheEntry>();
+
+/**
+ * Shares one request between concurrent callers and reuses the answer briefly. Scenario A and B
+ * each ask for the same feed, and a public API rate-limits a page that re-fetches on every click.
+ * The cached value keeps its own retrievedAt, so nothing is made to look fresher than it is.
+ */
+function memo<T>(key: string, fetcher: () => Promise<T>, ttlFor: (value: T) => number): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.value as Promise<T>;
+  const entry: CacheEntry = { expires: Number.POSITIVE_INFINITY, value: undefined as unknown as Promise<unknown> };
+  entry.value = fetcher().then(
+    (value) => {
+      entry.expires = Date.now() + ttlFor(value);
+      return value;
+    },
+    (error: unknown) => {
+      cache.delete(key);
+      throw error;
+    },
+  );
+  cache.set(key, entry);
+  return entry.value as Promise<T>;
+}
+
+/** Drops cached feed responses. Used by tests and available for a manual refresh. */
+export function clearAdapterCache(): void {
+  cache.clear();
+}
 
 type TripsRow = { timestamp: string; route: number; link: number; direction: number; accSeconds: number };
 
@@ -66,21 +100,27 @@ function fixtureFallback(scenarioId: "a" | "b", reason: string): EvidenceEnvelop
   return { ...fixture, caveat: `Live feed not used (${reason}). ${fixture.caveat}` };
 }
 
-/** Live DCC TRIPS with a guaranteed fallback to the replayed fixture. Never throws. */
-export async function getTrafficContext(scenarioId: "a" | "b"): Promise<EvidenceEnvelope<TrafficContext>> {
+type TripsFetch = { ok: true; text: string; retrievedAt: string } | { ok: false; reason: string };
+
+async function fetchTripsCsv(): Promise<TripsFetch> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const response = await fetch(tripsLiveFeed.proxiedPath, { signal: controller.signal });
-    if (!response.ok) return fixtureFallback(scenarioId, `HTTP ${response.status}`);
-    const envelope = tripsEnvelopeFromCsv(await response.text(), scenarioId, new Date().toISOString());
-    return envelope ?? fixtureFallback(scenarioId, "route not found in response");
+    if (!response.ok) return { ok: false, reason: `HTTP ${response.status}` };
+    return { ok: true, text: await response.text(), retrievedAt: new Date().toISOString() };
   } catch (error) {
-    const reason = error instanceof Error && error.name === "AbortError" ? "timed out" : "request failed";
-    return fixtureFallback(scenarioId, reason);
+    return { ok: false, reason: error instanceof Error && error.name === "AbortError" ? "timed out" : "request failed" };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Live DCC TRIPS with a guaranteed fallback to the replayed fixture. Never throws. */
+export async function getTrafficContext(scenarioId: "a" | "b"): Promise<EvidenceEnvelope<TrafficContext>> {
+  const result = await memo("trips", fetchTripsCsv, (r) => (r.ok ? CACHE_OK_MS : CACHE_FAIL_MS));
+  if (!result.ok) return fixtureFallback(scenarioId, result.reason);
+  return tripsEnvelopeFromCsv(result.text, scenarioId, result.retrievedAt) ?? fixtureFallback(scenarioId, "route not found in response");
 }
 
 function transitUnavailable(retrievedAt: string, reason: string): EvidenceEnvelope<TransitContext> {
@@ -129,8 +169,7 @@ export function transitEnvelopeFromFeed(body: unknown, retrievedAt: string): Evi
   };
 }
 
-/** Live NTA GTFS-R through the /gtfsr proxy. Never throws; failures are "unavailable". */
-export async function getTransitContext(): Promise<EvidenceEnvelope<TransitContext>> {
+async function fetchTransit(): Promise<EvidenceEnvelope<TransitContext>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -139,6 +178,7 @@ export async function getTransitContext(): Promise<EvidenceEnvelope<TransitConte
     if (response.headers.get(GTFSR_REASON_HEADER) === "missing-key") {
       return transitUnavailable(retrievedAt, "API key not configured (set NTA_API_KEY in .env.local)");
     }
+    if (response.status === 429) return transitUnavailable(retrievedAt, "HTTP 429, the NTA API is rate-limiting requests; it is retried shortly");
     if (!response.ok) return transitUnavailable(retrievedAt, `HTTP ${response.status}`);
     const envelope = transitEnvelopeFromFeed(await response.json(), retrievedAt);
     return envelope ?? transitUnavailable(retrievedAt, "response was not a GTFS-R feed");
@@ -148,4 +188,9 @@ export async function getTransitContext(): Promise<EvidenceEnvelope<TransitConte
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Live NTA GTFS-R through the /gtfsr proxy, shared and cached briefly. Never throws; failures are "unavailable". */
+export function getTransitContext(): Promise<EvidenceEnvelope<TransitContext>> {
+  return memo("transit", fetchTransit, (e) => (e.status === "unavailable" ? CACHE_FAIL_MS : CACHE_OK_MS));
 }

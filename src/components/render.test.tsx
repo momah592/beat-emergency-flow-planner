@@ -30,8 +30,8 @@ describe("PathwayCard", () => {
   });
   it("labels the bed-wait figure precisely and never as ED wait time or capacity", () => {
     const html = renderToStaticMarkup(<PathwayCard evidence={scenarios.b} accent="b" />);
-    expect(html).toContain("Published bed-wait context");
-    expect(html).toMatch(/Not an ED wait time, a hospital capacity statement or a destination recommendation/);
+    expect(html).toContain("Patients waiting for beds");
+    expect(html).toMatch(/published daily count, not ED wait time/);
     expect(html).not.toMatch(FORBIDDEN);
   });
 });

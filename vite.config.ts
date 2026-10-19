@@ -1,4 +1,5 @@
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { loadEnv, type Plugin } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { fetchGtfsr, GTFSR_REASON_HEADER, type GtfsrKeys } from "./src/data/gtfsrProxy";
 
@@ -43,5 +44,6 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), gtfsrProxy({ primary: env.NTA_API_KEY, secondary: env.NTA_API_KEY_SECONDARY })],
     server: { proxy },
     preview: { proxy },
+    test: { setupFiles: ["./src/test/setup.ts"] },
   };
 });

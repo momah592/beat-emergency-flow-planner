@@ -1,0 +1,11 @@
+{
+  "source": "INMO Trolley Watch",
+  "sourceUrl": "https://www.inmo.ie/News-Campaigns/Trolley-Watch",
+  "publishedDate": "2026-10-02",
+  "savedAt": "2026-10-04T14:16:00Z",
+  "howToAdd": "Add a hospital under \"hospitals\" using its exact name, with the trolley and ward counts as published by INMO for publishedDate. Leave a hospital out if its figure was not captured: it then shows as unavailable. Never estimate.",
+  "hospitals": {
+    "Beaumont Hospital": { "trolley": 37, "ward": 0 },
+    "St James's Hospital": { "trolley": 10, "ward": 0 }
+  }
+}

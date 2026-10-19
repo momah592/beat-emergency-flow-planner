@@ -39,6 +39,14 @@ describe("buildScenarioEvidence", () => {
     expect(a.traffic.status).toBe("replayed");
   });
 
+  it("still uses the network-wide transit feed for a hospital with no mapped corridor", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+      String(url).includes("/gtfsr/") ? new Response(JSON.stringify({ header: { timestamp: 1790000000 }, entity: [{ trip_update: {} }] })) : Promise.reject(new Error("down"))));
+    const x = await buildScenarioEvidence(incidentById("docklands"), "mater", "a");
+    expect(x.transit.status).toBe("live");
+    expect(x.traffic.status).toBe("unavailable");
+  });
+
   it("returns unavailable evidence for a hospital with no data slot", async () => {
     offline();
     const x = await buildScenarioEvidence(incidentById("docklands"), "mater", "a");
