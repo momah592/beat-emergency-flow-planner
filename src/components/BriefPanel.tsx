@@ -3,12 +3,12 @@ import { formatTimestamp } from "./formatTime";
 
 /**
  * Renders the brief so that no claim can be read apart from the source and
- * retrieval time it rests on, and so the stated limits are as visible as the
- * findings.
+ * retrieval time it rests on, and so uncertainty is as visible as the findings.
  */
 export function BriefPanel({ brief }: { brief: PlanningBrief }) {
+  const { summary } = brief;
   return (
-    <section className="section brief">
+    <section className={`section brief${summary.abstained ? " abstained" : ""}`}>
       <div className="section-heading">
         <div>
           <p className="eyebrow">Reviewable output</p>
@@ -17,43 +17,53 @@ export function BriefPanel({ brief }: { brief: PlanningBrief }) {
         <span className={`confidence ${brief.confidence}`}>Evidence confidence: {brief.confidence}</span>
       </div>
 
-      <div className={`recommendation${brief.recommendation.pathwayId ? "" : " recommendation-none"}`}>
-        <p className="eyebrow">Suggested route</p>
-        <p className="recommendation-headline">{brief.recommendation.headline}</p>
-        <p className="recommendation-rationale">{brief.recommendation.rationale}</p>
+      <h3>Summary</h3>
+      <div className={`summary${summary.abstained ? " summary-abstain" : ""}`}>
+        <p className="summary-headline">{summary.headline}</p>
+        <p className="summary-detail">{summary.detail}</p>
       </div>
 
-      <ol className="claim-list">
-        {brief.claims.map((claim) => (
-          <li key={claim.id} className="claim">
-            <p className="eyebrow">{claim.label}</p>
-            <p className="claim-statement">{claim.statement}</p>
-            <ul className="basis-list">
-              {claim.basis.map((basis) => (
-                <li key={`${basis.source}-${basis.retrievedAt}`} className="basis">
-                  <a href={basis.sourceUrl} target="_blank" rel="noreferrer">{basis.source}</a>
-                  <span className={`status ${basis.status}`}>{basis.status}</span>
-                  <span className="basis-time">
-                    Retrieved {formatTimestamp(basis.retrievedAt)}
-                    {basis.observedAt ? ` · observed ${formatTimestamp(basis.observedAt)}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ol>
+      {brief.claims.length > 0 && (
+        <>
+          <h3>Claims with sources</h3>
+          <ol className="claim-list">
+            {brief.claims.map((claim) => (
+              <li key={claim.id} className="claim">
+                <p className="eyebrow">{claim.label}</p>
+                <p className="claim-statement">{claim.statement}</p>
+                <ul className="basis-list">
+                  {claim.basis.map((basis) => (
+                    <li key={`${basis.source}-${basis.status}-${basis.retrievedAt}-${basis.observedAt ?? ""}`} className="basis">
+                      <a href={basis.sourceUrl} target="_blank" rel="noreferrer">{basis.source}</a>
+                      <span className={`status ${basis.status}`}>{basis.status === "replayed" ? "saved snapshot" : basis.status}</span>
+                      <span className="basis-time">
+                        Retrieved {formatTimestamp(basis.retrievedAt)}
+                        {basis.observedAt ? ` · observed ${formatTimestamp(basis.observedAt)}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
-      <div className="limits">
-        <p className="eyebrow">What this data does not measure</p>
+      <h3>Uncertainty and missing sources</h3>
+      <div className="uncertainty">
         <ul>
-          {brief.limitations.map((limitation) => (
-            <li key={limitation}>{limitation}</li>
-          ))}
+          {brief.uncertainty.length
+            ? brief.uncertainty.map((item) => <li key={item}>{item}</li>)
+            : <li>No stale or unavailable inputs reported.</li>}
         </ul>
       </div>
 
-      <p className="disclaimer">{brief.disclaimer}</p>
+      <div className="limits">
+        <p className="eyebrow">What this data does not measure</p>
+        <ul>{brief.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
+      </div>
+
+      <p className="disclaimer"><strong>Boundary statement.</strong> {brief.disclaimer}</p>
     </section>
   );
 }

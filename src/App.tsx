@@ -3,55 +3,50 @@ import { createPlanningBrief } from "./brief/createPlanningBrief";
 import { BriefPanel } from "./components/BriefPanel";
 import { EvidenceCard } from "./components/EvidenceCard";
 import { FleetMap } from "./components/FleetMap";
-import { ScenarioColumn } from "./components/ScenarioColumn";
-import type { ComparisonResult } from "./domain/types";
+import { PathwayCard } from "./components/PathwayCard";
+import { sources } from "./data/sourceRegistry";
+import type { ComparisonResult, EvidenceEnvelope, HistoricDemandContext } from "./domain/types";
 import { DEFAULT_INCIDENT_ID, INCIDENTS } from "./fleet/fixtures";
 import type { Incident } from "./fleet/types";
 import { HardcodedDemo } from "./hardcoded/HardcodedDemo";
 import { useComparison } from "./state/useComparison";
 
-const LAYERS = [
-  { key: "traffic", title: "Corridor traffic" },
-  { key: "crowding", title: "Published trolley count" },
-  { key: "transit", title: "Transit context" },
-] as const;
+const BANNER =
+  "Simulated planning comparison only. Not for ambulance dispatch, hospital selection, triage or clinical decision-making. Final decisions rest with dispatch and clinical teams.";
+
+const DEMO_QUESTION = "Which of two pre-declared pathways shows lower planning friction right now, and what evidence drove that?";
 
 const shouldShowHardcodedDemo = () =>
-  typeof window !== "undefined"
-  && new URLSearchParams(window.location.search).get("demo") === "hardcoded"
+  typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "hardcoded";
 
 export default function App() {
-  if (shouldShowHardcodedDemo()) {
-    return <HardcodedDemo />
-  }
-
-  return <LiveBeatApp />
+  if (shouldShowHardcodedDemo()) return <HardcodedDemo />;
+  return <LiveBeatApp />;
 }
 
 const LiveBeatApp = () => {
-  const [incidentId, setIncidentId] = useState(DEFAULT_INCIDENT_ID)
-  const state = useComparison(incidentId)
-  const brief = state.phase === "ready" ? createPlanningBrief(state.result) : undefined
+  const [incidentId, setIncidentId] = useState(DEFAULT_INCIDENT_ID);
+  const state = useComparison(incidentId);
 
   return (
-    <main>
-      <header className="hero">
-        <p className="eyebrow">Build for Ireland</p>
-        <h1>Healthy Traffic</h1>
-        <p className="lede">A unit is on scene. Which hospital, and what does the evidence say?</p>
-        <p className="warning">
-          Prototype on public data. Journey times are general traffic observations, not blue-light response estimates.
-          Confirm against live operational systems before any real-world use.
-        </p>
-      </header>
+    <>
+      <div className="banner" role="note">{BANNER}</div>
+      <main>
+        <header className="hero">
+          <p className="eyebrow">Build for Ireland</p>
+          <h1>Beat</h1>
+          <p className="lede">A simulated emergency-flow planning comparison for Dublin.</p>
+        </header>
 
-      <section className="section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Dublin city centre</p>
-            <h2>Fleet and candidate hospitals</h2>
+        <section className="section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Simulated incident · fixed demonstration scene</p>
+              <h2>Simulated high-acuity incident, {INCIDENTS.find((i) => i.id === incidentId)?.label}</h2>
+            </div>
+            {state.phase === "ready" && <span className={`confidence ${state.result.confidence}`}>Evidence confidence: {state.result.confidence}</span>}
           </div>
-          <div className="incident-picker">
+          <div className="incident-picker" role="group" aria-label="Simulated incident location">
             {INCIDENTS.map((incident) => (
               <button
                 key={incident.id}
@@ -64,88 +59,116 @@ const LiveBeatApp = () => {
               </button>
             ))}
           </div>
-        </div>
+          <p className="question">{DEMO_QUESTION}</p>
 
-        {state.phase === "ready" ? (
-          <FleetMap incident={state.incident} result={state.result} suggested={brief?.recommendation.pathwayId} />
-        ) : (
-          <div className="map map-placeholder">
-            {state.phase === "error" ? "Evidence unavailable" : "Retrieving public-data evidence…"}
+          {state.phase === "ready" ? (
+            <FleetMap incident={state.incident} result={state.result} />
+          ) : (
+            <div className="map map-placeholder">{state.phase === "error" ? "Evidence unavailable" : "Retrieving public-data evidence…"}</div>
+          )}
+          <div className="map-legend">
+            <span><i className="legend-line legend-a" /> Scenario A pathway</span>
+            <span><i className="legend-line legend-b" /> Scenario B pathway</span>
+            <span><i className="legend-scene" /> Simulated scene</span>
+            <span><i className="legend-dot" /> Simulated available unit</span>
           </div>
+        </section>
+
+        {state.phase === "loading" && <Skeleton />}
+
+        {state.phase === "error" && (
+          <section className="section brief abstained">
+            <h2>Evidence unavailable</h2>
+            <p>{state.message}</p>
+            <p className="small">Insufficient evidence. Human review requested. Nothing is estimated in its place.</p>
+          </section>
         )}
 
-        <div className="map-legend">
-          <span><i className="legend-line legend-suggested" /> Suggested run</span>
-          <span><i className="legend-line legend-alternate" /> Alternative</span>
-          <span><i className="legend-scene" /> Scene</span>
-          <span><i className="legend-dot" /> Available unit</span>
-        </div>
-      </section>
+        {state.phase === "ready" && <Readout incident={state.incident} result={state.result} />}
 
-      {state.phase === "error" && (
-        <section className="section">
-          <h2>Evidence unavailable</h2>
-          <p>{state.message}</p>
-          <p className="small">No suggestion is shown rather than an estimated one.</p>
-        </section>
-      )}
+        <footer className="footer">
+          <p className="eyebrow">Data sources</p>
+          <p className="source-links">
+            {Object.values(sources).map((source) => (
+              <a key={source.name} href={source.url} target="_blank" rel="noreferrer">{source.name}</a>
+            ))}
+          </p>
+          <p className="small">{BANNER}</p>
+        </footer>
+      </main>
+    </>
+  );
+};
 
-      {state.phase === "ready" && brief && <Readout incident={state.incident} result={state.result} brief={brief} />}
-    </main>
-  )
-}
-
-function Readout({
-  incident,
-  result,
-  brief,
-}: {
-  incident: Incident;
-  result: ComparisonResult;
-  brief: ReturnType<typeof createPlanningBrief>;
-}) {
+function Readout({ incident, result }: { incident: Incident; result: ComparisonResult }) {
   const [a, b] = result.scenarios;
+  const brief = createPlanningBrief(result);
+  const demand = result.historicDemand;
+  const demandEnvelope: EvidenceEnvelope<HistoricDemandContext> | undefined =
+    demand.source && demand.sourceUrl && demand.retrievedAt
+      ? {
+          source: demand.source,
+          sourceUrl: demand.sourceUrl,
+          status: demand.status,
+          retrievedAt: demand.retrievedAt,
+          observedAt: demand.observedAt,
+          caveat: demand.caveat,
+        }
+      : undefined;
 
   return (
     <>
-      <BriefPanel brief={brief} />
-
       <section className="section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">On scene at {incident.label}</p>
-            <h2>Candidate hospitals</h2>
+            <p className="eyebrow">Simulated incident at {incident.label}, {incident.area}</p>
+            <h2>Declared pathways</h2>
           </div>
-          <span className={`confidence ${result.confidence}`}>Evidence confidence: {result.confidence}</span>
         </div>
         <div className="scenario-grid">
-          <ScenarioColumn evidence={a} />
-          <ScenarioColumn evidence={b} />
+          <PathwayCard evidence={a} accent="a" />
+          <PathwayCard evidence={b} accent="b" />
         </div>
+        <p className="diff">
+          <strong>Differences only, no pick.</strong>{" "}
+          {result.trafficDeltaMinutes !== undefined ? `Road time differs by ${result.trafficDeltaMinutes} min.` : "Road time cannot be compared."}{" "}
+          {result.crowdingDifference !== undefined
+            ? `Bed-wait context differs by ${Math.abs(result.crowdingDifference)} patients.`
+            : "Bed-wait context cannot be compared (a source is unavailable)."}
+        </p>
       </section>
 
       <section className="section">
         <h2>Evidence trail</h2>
-        {LAYERS.map(({ key, title }) => (
-          <div className="layer-group" key={key}>
-            <p className="eyebrow">{title}</p>
-            <div className="scenario-grid">
-              <EvidenceCard title={a.scenario.name} evidence={a[key]} />
-              <EvidenceCard title={b.scenario.name} evidence={b[key]} />
-            </div>
-          </div>
-        ))}
-        {result.caveats.length > 0 && (
-          <div className="limits">
-            <p className="eyebrow">Freshness caveats</p>
-            <ul>
-              {result.caveats.map((caveat) => (
-                <li key={caveat}>{caveat}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <p className="small">Every signal with its source, status, observed and retrieval time. “Not supplied” is a valid value.</p>
+        <div className="evidence-grid">
+          <EvidenceCard title="Road: Scenario A" role="Core road-corridor journey time" evidence={a.traffic} />
+          <EvidenceCard title="Road: Scenario B" role="Core road-corridor journey time" evidence={b.traffic} />
+          <EvidenceCard title="Crowding: Scenario A" role="Published bed-wait context, not ED wait time" evidence={a.crowding} />
+          <EvidenceCard title="Crowding: Scenario B" role="Published bed-wait context, not ED wait time" evidence={b.crowding} />
+          <EvidenceCard title="Transit" role="Corroborating context only; never used to infer road speed" evidence={a.transit} />
+          {demandEnvelope && (
+            <EvidenceCard
+              title="Historical demand"
+              role="Retrospective context only; not live demand"
+              evidence={{ ...demandEnvelope, caveat: `${demand.area ?? ""}. ${demand.note ?? ""} ${demand.caveat}`.trim() }}
+            />
+          )}
+        </div>
       </section>
+
+      <BriefPanel brief={brief} />
     </>
+  );
+}
+
+function Skeleton() {
+  return (
+    <section className="section" aria-busy="true" aria-label="Loading evidence">
+      <div className="scenario-grid">
+        <div className="pathway skeleton" />
+        <div className="pathway skeleton" />
+      </div>
+    </section>
   );
 }

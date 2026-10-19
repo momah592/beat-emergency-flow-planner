@@ -8,15 +8,13 @@ import type { Incident, LatLng } from "../fleet/types";
 
 type Geometry = { path: LatLng[]; routed: boolean };
 
-const SUGGESTED = "#1f9d55";
-const ALTERNATE = "#54708a";
+const PATH_COLOUR = { a: "#2398c5", b: "#7a5ac8" } as const;
 
-type Props = { incident: Incident; result: ComparisonResult; suggested?: "a" | "b" };
+type Props = { incident: Incident; result: ComparisonResult };
 
 /**
- * Fleet view: every ambulance, the scene, and both candidate hospital runs.
- * The suggested run is highlighted. When no route can be suggested, both are
- * drawn neutrally so the map never implies a choice the evidence cannot support.
+ * Fleet view: the scene, simulated units and both declared pathways. Both are drawn with equal
+ * weight so the map never implies a choice. Colours identify Scenario A and B only.
  */
 /**
  * Places a hospital label on the far side of its own point, away from the
@@ -28,7 +26,7 @@ function sideClass(scene: [number, number], hospital: [number, number]): string 
   return `pin-${vertical}${horizontal}`;
 }
 
-export function FleetMap({ incident, result, suggested }: Props) {
+export function FleetMap({ incident, result }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const [geometry, setGeometry] = useState<Record<string, Geometry>>({});
@@ -126,19 +124,18 @@ export function FleetMap({ incident, result, suggested }: Props) {
 
     for (const { slot, hospitalId, minutes, waiting } of slots) {
       const hospital = HOSPITALS[hospitalId];
-      const isSuggested = suggested === slot;
 
       const path =
         geometry[hospitalId]?.path ?? indicativePath(incident.position, hospital.position, slot === "a" ? 0.2 : -0.2);
-      const weight = isSuggested ? 7 : 5;
+      const weight = 5;
 
       // White casing underneath, so both runs stay legible over busy map tiles.
       drawn.push(L.polyline(path, { color: "#ffffff", weight: weight + 5, opacity: 0.85 }).addTo(instance));
       drawn.push(
         L.polyline(path, {
-          color: isSuggested ? SUGGESTED : ALTERNATE,
+          color: PATH_COLOUR[slot],
           weight,
-          opacity: isSuggested ? 0.95 : 0.9,
+          opacity: 0.9,
           dashArray: minutes === undefined ? "6 8" : undefined,
         }).addTo(instance),
       );
@@ -147,7 +144,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
         L.marker(hospital.position, {
           icon: L.divIcon({
             className: "map-pin",
-            html: `<span class="pin pin-hospital ${sideClass(incident.position, hospital.position)} ${isSuggested ? "pin-suggested" : ""}">${hospital.shortName}<em>${minutes === undefined ? "no observed data" : `${minutes} min${waiting === undefined ? "" : ` · ${waiting} waiting`}`}</em></span>`,
+            html: `<span class="pin pin-hospital ${sideClass(incident.position, hospital.position)} ">${hospital.shortName}<em>${minutes === undefined ? "no observed data" : `${minutes} min${waiting === undefined ? "" : ` · ${waiting} waiting for beds`}`}</em></span>`,
             iconSize: [0, 0],
           }),
         }).addTo(instance),
@@ -158,7 +155,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
       L.marker(incident.position, {
         icon: L.divIcon({
           className: "map-pin",
-          html: `<span class="pin pin-scene">${incident.label}<em>${onScene ? `${onScene.callsign} on scene` : "no unit assigned"}</em></span>`,
+          html: `<span class="pin pin-scene">${incident.label}<em>${onScene ? `${onScene.callsign} (simulated)` : "no unit assigned"}</em></span>`,
           iconSize: [0, 0],
         }),
       }).addTo(instance),
@@ -167,7 +164,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
     const bounds = L.latLngBounds([
       incident.position,
       ...incident.candidateHospitalIds.map((id) => HOSPITALS[id].position),
-      ...AMBULANCES.map((ambulance) => ambulance.position),
+      ...(onScene ? [onScene.position] : []),
     ]);
 
     // The container can report zero width on first paint because the stylesheet
@@ -188,7 +185,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
       observer.disconnect();
       for (const layer of drawn) instance.removeLayer(layer);
     };
-  }, [incident, result, suggested, geometry]);
+  }, [incident, result, geometry]);
 
   const paths = Object.values(geometry);
   const allRouted = paths.length > 0 && paths.every((item) => item.routed);
@@ -199,7 +196,7 @@ export function FleetMap({ incident, result, suggested }: Props) {
       <p className="small route-source">
         {allRouted
           ? "Route geometry: live road routing from OSRM, following actual streets. Journey times come from DCC TRIPS, not from this geometry."
-          : "Route geometry: indicative only — the road router did not answer, so these lines do not follow streets. Journey times come from DCC TRIPS and are unaffected."}
+          : "Route geometry: indicative only. The road router did not answer, so these lines do not follow streets. Journey times come from DCC TRIPS and are unaffected."}
       </p>
     </>
   );

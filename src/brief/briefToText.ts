@@ -8,8 +8,8 @@ export function briefToText(brief: PlanningBrief): string {
   const lines: string[] = [
     brief.title,
     "",
-    `Suggested route: ${brief.recommendation.headline}`,
-    brief.recommendation.rationale,
+    brief.summary.headline,
+    brief.summary.detail,
     "",
     `Evidence confidence: ${brief.confidence}`,
     "",
@@ -24,7 +24,11 @@ export function briefToText(brief: PlanningBrief): string {
     lines.push("");
   }
 
-  lines.push("What this data does not measure:");
+  lines.push("Uncertainty and missing sources:");
+  for (const item of brief.uncertainty.length ? brief.uncertainty : ["None reported."]) {
+    lines.push(`  - ${item}`);
+  }
+  lines.push("", "What this data does not measure:");
   for (const limitation of brief.limitations) {
     lines.push(`  - ${limitation}`);
   }

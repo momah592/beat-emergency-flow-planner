@@ -61,7 +61,7 @@ describe("brief traceability", () => {
 });
 
 describe("brief content", () => {
-  it("names the shorter corridor and suggests it", () => {
+  it("names the shorter corridor as a difference, not a pick", () => {
     const { a, b } = evidenceVariants()[0];
     const result = compareScenarios(a, b);
     const brief = createPlanningBrief(result);
@@ -72,7 +72,9 @@ describe("brief content", () => {
     // values can change without breaking the test.
     expect(corridor.statement).toContain(lead.scenario.name);
     expect(corridor.statement).toContain(`${result.trafficDeltaMinutes} minute`);
-    expect(brief.recommendation.pathwayId).toBe(result.trafficLead);
+    expect(brief.summary.headline).toContain(`${result.trafficDeltaMinutes} minute`);
+    expect(brief.summary.detail).toMatch(/road context only/i);
+    expect(brief.summary.abstained).toBe(false);
   });
 
   it("drops the transit claim when no transit feed returned data", () => {
@@ -81,18 +83,24 @@ describe("brief content", () => {
     expect(brief.claims.map((claim) => claim.id)).not.toContain("transit-context");
   });
 
-  it("cites both traffic and trolley evidence under the recommendation", () => {
+  it("cites both traffic and trolley evidence under the summary", () => {
     const { a, b } = evidenceVariants()[0];
     const brief = createPlanningBrief(compareScenarios(a, b));
-    const cited = brief.recommendation.basis.map((basis) => basis.source);
+    const cited = brief.summary.basis.map((basis) => basis.source);
     expect(cited).toContain("DCC TRIPS");
     expect(cited).toContain("INMO Trolley Watch");
   });
 
-  it("says plainly when the two signals disagree", () => {
+  it("keeps road time and crowding as separate signals", () => {
     const { a, b } = evidenceVariants()[0];
     const brief = createPlanningBrief(compareScenarios(a, b));
-    expect(brief.recommendation.rationale).toMatch(/opposite directions/i);
+    expect(brief.summary.detail).toMatch(/separate crowding signal/i);
+  });
+
+  it("lists non-live inputs under uncertainty", () => {
+    const { a, b } = evidenceVariants()[0];
+    const result = compareScenarios(a, b);
+    expect(createPlanningBrief(result).uncertainty).toEqual(result.caveats);
   });
 
   it("singularises a one-minute difference", () => {
@@ -102,5 +110,6 @@ describe("brief content", () => {
     const brief = createPlanningBrief(compareScenarios(a, nudged));
     expect(brief.claims[0].statement).toContain("1 minute.");
     expect(brief.claims[0].statement).not.toContain("1 minutes");
+    expect(brief.summary.headline).toBe("Road time differs by 1 minute");
   });
 });

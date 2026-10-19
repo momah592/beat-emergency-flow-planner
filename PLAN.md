@@ -1,4 +1,4 @@
-# Healthy Traffic — 2-hour build plan for 4 people
+# Beat — 2-hour build plan for 4 people
 
 Goal: at T+120 we have a working, demoable app that renders correctly even if every
 live feed fails. Everything else is optional.

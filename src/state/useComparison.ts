@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { dfbEnvelope } from "../data/fixtures";
 import { compareScenarios } from "../domain/compareScenarios";
 import type { ComparisonResult } from "../domain/types";
 import { buildScenarioEvidence } from "../fleet/buildEvidence";
@@ -28,7 +29,7 @@ export function useComparison(incidentId: string): ComparisonState {
         buildScenarioEvidence(incident, first, "a"),
         buildScenarioEvidence(incident, second, "b"),
       ]);
-      return { incident, result: compareScenarios(a, b) };
+      return { incident, result: compareScenarios(a, b, { historicDemand: dfbEnvelope(incident.dfbStationArea) }) };
     };
 
     load()

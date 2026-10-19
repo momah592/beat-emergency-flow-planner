@@ -24,21 +24,23 @@ export type BriefClaim = {
 };
 
 /**
- * The suggested pathway. `pathwayId` is undefined when the evidence does not
- * support picking one, in which case the UI must not highlight either route.
+ * The comparison in words: a difference between two declared pathways, never a pick.
+ * `abstained` is true when the evidence cannot support any comparison.
  */
-export type Recommendation = {
-  pathwayId?: "a" | "b";
+export type BriefSummary = {
+  abstained: boolean;
   headline: string;
-  rationale: string;
+  detail: string;
   basis: ClaimBasis[];
 };
 
 export type PlanningBrief = {
   title: string;
   confidence: "high" | "limited" | "insufficient";
-  recommendation: Recommendation;
+  summary: BriefSummary;
   claims: BriefClaim[];
+  /** Inputs that are saved, stale or unavailable in this run. */
+  uncertainty: string[];
   /** What the underlying sources do and do not measure. */
   limitations: string[];
   disclaimer: string;

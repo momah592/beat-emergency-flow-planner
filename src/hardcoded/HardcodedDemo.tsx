@@ -16,10 +16,10 @@ export const HardcodedDemo = () => {
       <header className="hc-hero">
         <div className="hc-hero-copy">
           <p className="hc-kicker">Build for Ireland · Hardcoded process demo</p>
-          <h1>Healthy Traffic</h1>
+          <h1>Beat</h1>
           <p className="hc-subtitle">Dublin Emergency Flow Simulator</p>
           <p className="hc-lede">
-            Given a simulated incident location, Healthy Traffic shows how live road conditions and hospital
+            Given a simulated incident location, Beat shows how live road conditions and hospital
             crowding might affect the wider emergency pathway — while final routing stays with
             dispatch / clinical teams.
           </p>
@@ -35,7 +35,7 @@ export const HardcodedDemo = () => {
         <div className="hc-section-head">
           <div>
             <p className="hc-eyebrow">Process</p>
-            <h2 id="process-heading">How Healthy Traffic works</h2>
+            <h2 id="process-heading">How Beat works</h2>
           </div>
         </div>
         <ol className="hc-process">

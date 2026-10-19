@@ -1,6 +1,6 @@
 import { loadScenarioEvidence } from "../data/loadScenarioEvidence";
 import { sources } from "../data/sourceRegistry";
-import type { EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
+import type { CrowdingContext, EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
 import { HOSPITALS } from "./fixtures";
 import type { Incident, LatLng } from "./types";
 
@@ -27,8 +27,8 @@ export async function buildScenarioEvidence(
   const hospital = HOSPITALS[hospitalId];
   const scenario: Scenario = {
     id: slot,
-    name: hospital.shortName,
-    declaredCorridor: `${incident.label} to ${hospital.shortName}`,
+    name: incident.pathways?.[slot === "a" ? 0 : 1] ?? hospital.shortName,
+    declaredCorridor: `${incident.label} incident to ${hospital.name}`,
     namedHospital: hospital.name,
   };
 
@@ -45,7 +45,21 @@ export async function buildScenarioEvidence(
   // The data layer is keyed by scenario slot, so ask it for the slot that holds
   // this hospital's corridor and then present it under the comparison slot.
   const evidence = await loadScenarioEvidence({ ...scenario, id: hospital.dataSlot });
-  return { ...evidence, scenario };
+  const note = incident.corridorNote;
+  const traffic = note && evidence.traffic.status !== "unavailable"
+    ? { ...evidence.traffic, caveat: `${note} ${evidence.traffic.caveat}` }
+    : evidence.traffic;
+
+  // A slot's crowding figure belongs to the hospital it was published for. If this hospital
+  // is not that one, show it as unavailable rather than another hospital's number.
+  const crowding = evidence.crowding.data && evidence.crowding.data.hospital !== hospital.name
+    ? {
+        ...unavailable<CrowdingContext>(sources.inmo, evidence.crowding.retrievedAt),
+        caveat: `No INMO Trolley Watch figure is captured for ${hospital.name}, so no bed-wait context is shown for this pathway. Not estimated.`,
+      }
+    : evidence.crowding;
+
+  return { ...evidence, scenario, traffic, crowding };
 }
 
 /** Compass direction from scene to hospital, for map labelling only. */

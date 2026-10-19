@@ -1,8 +1,8 @@
 import type { ComparisonResult, EvidenceEnvelope } from "../domain/types";
-import type { BriefClaim, ClaimBasis, PlanningBrief, Recommendation } from "./types";
+import type { BriefClaim, BriefSummary, ClaimBasis, PlanningBrief } from "./types";
 
 export const DISCLAIMER =
-  "Prototype built on public data for Build for Ireland. Confirm against live operational systems before any real-world use.";
+  "This is a simulated planning comparison for review only. It is not a dispatch, destination, triage or clinical recommendation. Final decisions rest with dispatch and clinical teams.";
 
 /** What the sources do and do not measure. These hold however fresh the feed is. */
 const STANDING_LIMITATIONS = [
@@ -31,51 +31,42 @@ function basisOf(...envelopes: EvidenceEnvelope<unknown>[]): ClaimBasis[] {
   return basis;
 }
 
-function buildRecommendation(result: ComparisonResult): Recommendation {
+function buildSummary(result: ComparisonResult): BriefSummary {
   const [a, b] = result.scenarios;
   const basis = basisOf(a.traffic, b.traffic, a.crowding, b.crowding);
   const bothTraffic = a.traffic.data !== undefined && b.traffic.data !== undefined;
 
   if (!bothTraffic) {
     return {
-      pathwayId: undefined,
-      headline: "No route suggested",
-      rationale:
-        "Observed journey time is missing for at least one corridor, so the two routes cannot be compared. No suggestion is made rather than a guessed one.",
+      abstained: true,
+      headline: "Insufficient comparable evidence. Human review requested.",
+      detail:
+        "Observed journey time is missing for at least one declared corridor, so the two pathways cannot be compared. No comparison is drawn rather than a guessed one.",
       basis,
     };
   }
 
-  if (result.trafficLead === undefined) {
-    return {
-      pathwayId: undefined,
-      headline: "Both routes equal on observed journey time",
-      rationale:
-        "The two corridors show the same observed journey time, so travel time does not separate them. Choose on operational grounds.",
-      basis,
-    };
-  }
+  const roadSentence = result.trafficLead === undefined
+    ? "The two declared corridors show the same observed journey time."
+    : `${(result.trafficLead === "a" ? a : b).scenario.name} shows the shorter observed corridor journey time, by ${minutesText(result.trafficDeltaMinutes ?? 0)}. This is road context only.`;
 
-  const lead = result.trafficLead === "a" ? a : b;
-  const other = result.trafficLead === "a" ? b : a;
-  const minutes = result.trafficDeltaMinutes ?? 0;
-  const leadCrowding = lead.crowding.data;
-  const otherCrowding = other.crowding.data;
-
-  const crowdingNote =
-    leadCrowding && otherCrowding
-      ? leadCrowding.patientsWaitingForBeds > otherCrowding.patientsWaitingForBeds
-        ? ` Note that ${lead.scenario.name} also has the higher published trolley count (${leadCrowding.patientsWaitingForBeds} against ${otherCrowding.patientsWaitingForBeds}), so the two signals point in opposite directions.`
-        : ` ${lead.scenario.name} also has the lower published trolley count (${leadCrowding.patientsWaitingForBeds} against ${otherCrowding.patientsWaitingForBeds}), so both signals agree.`
-      : " No published trolley count is available to weigh alongside journey time.";
+  const aCrowding = a.crowding.data;
+  const bCrowding = b.crowding.data;
+  const crowdingSentence = aCrowding && bCrowding
+    ? `Published trolley counts differ by ${Math.abs(aCrowding.patientsWaitingForBeds - bCrowding.patientsWaitingForBeds)} patients. This is a separate crowding signal and is not combined with road time.`
+    : "Crowding context cannot be compared because a published trolley count is unavailable for one or both pathways.";
 
   return {
-    pathwayId: result.trafficLead,
-    headline: `${lead.scenario.name} — ${minutes} minute${minutes === 1 ? "" : "s"} shorter on observed journey time`,
-    rationale: `${lead.scenario.declaredCorridor} shows the shorter observed corridor journey time, by ${minutes} minute${minutes === 1 ? "" : "s"}.${crowdingNote}`,
+    abstained: false,
+    headline: result.trafficLead === undefined
+      ? "No difference in observed journey time"
+      : `Road time differs by ${minutesText(result.trafficDeltaMinutes ?? 0)}`,
+    detail: `${roadSentence} ${crowdingSentence}`,
     basis,
   };
 }
+
+const minutesText = (minutes: number) => `${minutes} minute${minutes === 1 ? "" : "s"}`;
 
 export function createPlanningBrief(result: ComparisonResult): PlanningBrief {
   const [a, b] = result.scenarios;
@@ -99,10 +90,16 @@ export function createPlanningBrief(result: ComparisonResult): PlanningBrief {
   claims.push({
     id: "bed-wait-context",
     label: "Published trolley count",
-    statement:
-      aCrowding && bCrowding
-        ? `${a.scenario.name} is associated with ${aCrowding.patientsWaitingForBeds} patients waiting for beds as published on ${aCrowding.publishedDate}; ${b.scenario.name} with ${bCrowding.patientsWaitingForBeds}.`
-        : "Published trolley count is unavailable for one or both hospitals.",
+    statement: [
+      [a, aCrowding],
+      [b, bCrowding],
+    ]
+      .map(([item, data]) =>
+        data
+          ? `${(item as typeof a).scenario.name} is associated with ${(data as typeof aCrowding)!.patientsWaitingForBeds} patients waiting for beds as published on ${(data as typeof aCrowding)!.publishedDate}.`
+          : `${(item as typeof a).scenario.name} has no published trolley count available. Nothing is estimated.`,
+      )
+      .join(" "),
     basis: basisOf(a.crowding, b.crowding),
   });
 
@@ -124,10 +121,11 @@ export function createPlanningBrief(result: ComparisonResult): PlanningBrief {
   }
 
   return {
-    title: "Route comparison",
+    title: "Simulated planning brief",
     confidence: result.confidence,
-    recommendation: buildRecommendation(result),
+    summary: buildSummary(result),
     claims,
+    uncertainty: result.caveats,
     limitations,
     disclaimer: DISCLAIMER,
   };
