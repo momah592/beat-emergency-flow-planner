@@ -54,4 +54,3 @@ data adapters -> EvidenceEnvelope -> compareScenarios -> ComparisonResult -> pla
 | `src/brief/` | The planning brief, its citations and tests |
 | `src/components/` | Map, pathway cards, evidence cards, brief panel |
 | `src/state/` | `useComparison`, the single UI boundary |
-| `src/hardcoded/` | A separate scripted process demo (`?demo=hardcoded`) |

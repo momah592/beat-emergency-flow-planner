@@ -8,7 +8,6 @@ import { sources } from "./data/sourceRegistry";
 import type { ComparisonResult, EvidenceEnvelope, HistoricDemandContext } from "./domain/types";
 import { DEFAULT_INCIDENT_ID, INCIDENTS } from "./fleet/fixtures";
 import type { Incident } from "./fleet/types";
-import { HardcodedDemo } from "./hardcoded/HardcodedDemo";
 import { useComparison } from "./state/useComparison";
 
 const BANNER =
@@ -16,11 +15,7 @@ const BANNER =
 
 const DEMO_QUESTION = "Which of the two pathways has lower planning friction right now, and what evidence drove that?";
 
-const shouldShowHardcodedDemo = () =>
-  typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "hardcoded";
-
 export default function App() {
-  if (shouldShowHardcodedDemo()) return <HardcodedDemo />;
   return <LiveBeatApp />;
 }
 
