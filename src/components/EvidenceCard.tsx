@@ -1,18 +1,23 @@
 import type { EvidenceEnvelope } from "../domain/types";
+import { freshnessLabel, statusLabel } from "./freshness";
 
-type Props = { title: string; evidence: EvidenceEnvelope<unknown> };
+type Props = { title: string; role: string; evidence: EvidenceEnvelope<unknown> };
 
-export function EvidenceCard({ title, evidence }: Props) {
+const time = (iso?: string) => (iso ? new Date(iso).toLocaleString("en-IE") : "Not supplied");
+
+export function EvidenceCard({ title, role, evidence }: Props) {
   return (
     <article className="evidence-card">
-      <div className="card-topline"><span>{title}</span><span className={`status ${evidence.status}`}>{evidence.status}</span></div>
+      <div className="card-topline"><span>{title}</span><span className={`status ${evidence.status}`}>{statusLabel(evidence.status)}</span></div>
+      <p className="role">{role}</p>
       <a href={evidence.sourceUrl} target="_blank" rel="noreferrer">{evidence.source}</a>
+      <p className="freshness">{freshnessLabel(evidence)}</p>
       <p>{evidence.caveat}</p>
       <dl>
-        <div><dt>Retrieved</dt><dd>{new Date(evidence.retrievedAt).toLocaleString()}</dd></div>
-        <div><dt>Observed</dt><dd>{evidence.observedAt ? new Date(evidence.observedAt).toLocaleString() : "Not supplied"}</dd></div>
+        <div><dt>Retrieved</dt><dd>{time(evidence.retrievedAt)}</dd></div>
+        <div><dt>Observed</dt><dd>{time(evidence.observedAt)}</dd></div>
+        <div><dt>Freshness</dt><dd>{evidence.freshnessSeconds !== undefined ? `${evidence.freshnessSeconds}s` : "Not supplied"}</dd></div>
       </dl>
     </article>
   );
 }
-

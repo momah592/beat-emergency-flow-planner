@@ -30,3 +30,16 @@ dl { margin: 14px 0 0; display: grid; gap: 8px; } dl div { display:flex; justify
 .brief { border-left: 5px solid #2398c5; } .brief p { font-size: 1.08rem; line-height: 1.6; } .brief li { margin: 6px 0; color: #5e7180; }
 @media (max-width: 760px) { main { width: min(100% - 20px, 1120px); padding-top: 10px; } .hero, .section { border-radius: 14px; padding: 22px; } .section-heading { display:block; } .confidence { display:inline-block; margin-top:12px; } .scenario-grid, .evidence-grid { grid-template-columns: 1fr; } }
 
+.banner { position: sticky; top: 0; z-index: 5; margin-bottom: 16px; background: #fff7e6; border-left: 4px solid #f7be5b; border-radius: 8px; padding: 10px 14px; font-size: .88rem; color: #5b4200; box-shadow: 0 4px 16px rgba(12, 36, 54, .08); }
+.question { font-size: 1.1rem; font-weight: 600; color: #0b3857; margin: 14px 0 0; }
+.diff { margin: 16px 0 0; padding: 12px 14px; background: #f2f7fa; border-radius: 10px; color: #3d5466; }
+.metric small { display: block; margin-top: 2px; font-size: .78rem; color: #7a8c99; }
+.metric.road { border-left: 3px solid #2398c5; padding-left: 12px; }
+.metric.crowding { border-left: 3px solid #7a5ac8; padding-left: 12px; }
+.metric strong em { display: block; margin-top: 6px; font-style: normal; text-align: center; font-size: .7rem; }
+.role { font-style: italic; margin-bottom: 6px; }
+.freshness { font-weight: 700; color: #0b3857 !important; }
+.brief h3 { margin: 18px 0 6px; font-size: 1rem; }
+.brief .citation { display: block; font-size: .78rem; color: #6a7c8a; margin-top: 2px; }
+.brief.abstained { border-left-color: #8b2932; }
+.brief .boundary { margin-top: 18px; padding: 12px 14px; border: 1px solid #d7e3e9; border-radius: 10px; font-size: .92rem; }
