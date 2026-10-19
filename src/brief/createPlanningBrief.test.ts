@@ -61,18 +61,19 @@ describe("brief traceability", () => {
 });
 
 describe("brief content", () => {
-  it("names the shorter corridor as a difference, not a pick", () => {
+  it("names the faster corridor as a difference, not a pick", () => {
     const { a, b } = evidenceVariants()[0];
     const result = compareScenarios(a, b);
     const brief = createPlanningBrief(result);
-    const corridor = brief.claims.find((claim) => claim.id === "corridor-journey")!;
+    const corridor = brief.claims.find((claim) => claim.id === "corridor-speed")!;
     const lead = result.trafficLead === "a" ? a : b;
 
     // Derived from the fixtures rather than hardcoded, so real public-data
     // values can change without breaking the test.
     expect(corridor.statement).toContain(lead.scenario.name);
-    expect(corridor.statement).toContain(`${result.trafficDeltaMinutes} minute`);
-    expect(brief.summary.headline).toContain(`${result.trafficDeltaMinutes} minute`);
+    expect(corridor.statement).toContain(`${result.trafficDeltaKmh} km/h`);
+    expect(brief.summary.headline).toContain(`${result.trafficDeltaKmh} km/h`);
+    expect(corridor.statement).toMatch(/% of its .* km route/);
     expect(brief.summary.detail).toMatch(/road context only/i);
     expect(brief.summary.abstained).toBe(false);
   });
@@ -103,13 +104,20 @@ describe("brief content", () => {
     expect(createPlanningBrief(result).uncertainty).toEqual(result.caveats);
   });
 
-  it("singularises a one-minute difference", () => {
+  it("states coverage for each pathway and says it is not a full journey time", () => {
     const { a, b } = evidenceVariants()[0];
-    const minutes = a.traffic.data!.journeyMinutes;
-    const nudged = { ...b, traffic: { ...b.traffic, data: { ...b.traffic.data!, journeyMinutes: minutes + 1 } } };
-    const brief = createPlanningBrief(compareScenarios(a, nudged));
-    expect(brief.claims[0].statement).toContain("1 minute.");
-    expect(brief.claims[0].statement).not.toContain("1 minutes");
-    expect(brief.summary.headline).toBe("Road time differs by 1 minute");
+    const brief = createPlanningBrief(compareScenarios(a, b));
+    expect(brief.summary.detail).toMatch(/not a full journey-time comparison/i);
+    expect(brief.limitations.join(" ")).toMatch(/covers only part of the road network/i);
+    expect(brief.claims[0].statement).toContain(`${a.traffic.data!.coveragePercent}%`);
+    expect(brief.claims[0].statement).toContain(`${b.traffic.data!.coveragePercent}%`);
+  });
+
+  it("abstains when one pathway has no TRIPS coverage, and never estimates it", () => {
+    const { a, b } = evidenceVariants()[0];
+    const uncovered = { ...b, traffic: { ...b.traffic, status: "unavailable" as const, data: undefined } };
+    const brief = createPlanningBrief(compareScenarios(a, uncovered));
+    expect(brief.summary.abstained).toBe(true);
+    expect(brief.claims[0].statement).toMatch(/no TRIPS reading along this pathway\. Nothing is estimated/);
   });
 });

@@ -6,7 +6,8 @@ export const DISCLAIMER =
 
 /** What the sources do and do not measure. These hold however fresh the feed is. */
 const STANDING_LIMITATIONS = [
-  "Journey times are general traffic observations. They are not blue-light response estimates, and an emergency vehicle will not experience the corridor the same way.",
+  "Road figures are general traffic observations on the TRIPS-covered links of each route. They are not blue-light response estimates, and an emergency vehicle will not experience the corridor the same way.",
+  "TRIPS covers only part of the road network, so each speed is measured on a different share of its route and reflects road type as well as congestion. It is not a full journey time.",
   "The trolley figure is a published daily count of patients waiting for beds. It is not an emergency department waiting time and not a live capacity reading.",
   "Neither source accounts for patient condition, crew availability or hospital specialty cover.",
 ];
@@ -41,14 +42,14 @@ function buildSummary(result: ComparisonResult): BriefSummary {
       abstained: true,
       headline: "Insufficient comparable evidence. Human review requested.",
       detail:
-        "Observed journey time is missing for at least one declared corridor, so the two pathways cannot be compared. No comparison is drawn rather than a guessed one.",
+        "Observed road speed is missing for at least one declared pathway (TRIPS has no reading along it), so the two pathways cannot be compared. No comparison is drawn rather than a guessed one.",
       basis,
     };
   }
 
   const roadSentence = result.trafficLead === undefined
-    ? "The two declared corridors show the same observed journey time."
-    : `${(result.trafficLead === "a" ? a : b).scenario.name} shows the shorter observed corridor journey time, by ${minutesText(result.trafficDeltaMinutes ?? 0)}. This is road context only.`;
+    ? "The two declared pathways show the same observed speed on their TRIPS-covered links."
+    : `${(result.trafficLead === "a" ? a : b).scenario.name} shows the higher observed speed on its TRIPS-covered links, by ${result.trafficDeltaKmh} km/h. This is road context only, measured on ${a.traffic.data!.coveragePercent}% and ${b.traffic.data!.coveragePercent}% of the two routes, so it is not a full journey-time comparison.`;
 
   const aCrowding = a.crowding.data;
   const bCrowding = b.crowding.data;
@@ -59,29 +60,34 @@ function buildSummary(result: ComparisonResult): BriefSummary {
   return {
     abstained: false,
     headline: result.trafficLead === undefined
-      ? "No difference in observed journey time"
-      : `Road time differs by ${minutesText(result.trafficDeltaMinutes ?? 0)}`,
+      ? "No difference in observed road speed"
+      : `Observed road speed differs by ${result.trafficDeltaKmh} km/h`,
     detail: `${roadSentence} ${crowdingSentence}`,
     basis,
   };
 }
 
-const minutesText = (minutes: number) => `${minutes} minute${minutes === 1 ? "" : "s"}`;
-
 export function createPlanningBrief(result: ComparisonResult): PlanningBrief {
   const [a, b] = result.scenarios;
   const claims: BriefClaim[] = [];
 
-  const leadName = result.trafficLead === "a" ? a.scenario.name : b.scenario.name;
+  const speedLine = (item: typeof a) => {
+    const t = item.traffic.data;
+    return t
+      ? `${item.scenario.name}: ${t.speedKmh} km/h observed on ${t.coveredKm} km (${t.coveragePercent}% of its ${t.routeKm} km route, ${t.matchedLinks} TRIPS link${t.matchedLinks === 1 ? "" : "s"}).`
+      : `${item.scenario.name}: no TRIPS reading along this pathway. Nothing is estimated.`;
+  };
   const bothTraffic = a.traffic.data !== undefined && b.traffic.data !== undefined;
   claims.push({
-    id: "corridor-journey",
-    label: "Corridor journey time",
-    statement: !bothTraffic
-      ? "No comparable observed journey time is available for both corridors."
-      : result.trafficLead === undefined
-        ? "Both corridors show the same observed journey time."
-        : `${leadName} has the shorter observed journey time on its corridor, by ${result.trafficDeltaMinutes} minute${result.trafficDeltaMinutes === 1 ? "" : "s"}.`,
+    id: "corridor-speed",
+    label: "Observed corridor speed",
+    statement: [
+      speedLine(a),
+      speedLine(b),
+      bothTraffic && result.trafficLead !== undefined
+        ? `${(result.trafficLead === "a" ? a : b).scenario.name} shows the higher speed, by ${result.trafficDeltaKmh} km/h.`
+        : "",
+    ].filter(Boolean).join(" "),
     basis: basisOf(a.traffic, b.traffic),
   });
 

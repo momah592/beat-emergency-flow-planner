@@ -61,7 +61,7 @@ describe("engine behaviour under missing evidence", () => {
     const variant = evidenceVariants().find((item) => item.name === "traffic unavailable")!;
     const result = compareScenarios(variant.a, variant.b);
     expect(result.trafficLead).toBeUndefined();
-    expect(result.trafficDeltaMinutes).toBeUndefined();
+    expect(result.trafficDeltaKmh).toBeUndefined();
     expect(result.confidence).toBe("insufficient");
   });
 

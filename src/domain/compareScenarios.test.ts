@@ -5,7 +5,8 @@ import { compareScenarios } from "./compareScenarios"
 import type { EvidenceEnvelope, HistoricDemandContext, ScenarioEvidence } from "./types"
 
 const retrievedAt = "2026-10-04T10:30:00Z"
-const fixtureTrafficDeltaMinutes = 15.9
+// St Stephen's Green saved pathways: Beaumont 36.5 km/h vs St James's 59.5 km/h on their TRIPS-covered links.
+const fixtureTrafficDeltaKmh = 23
 const fixtureCrowdingDifference = 27
 
 const withTraffic = (
@@ -34,7 +35,7 @@ const withTransit = (
 
 const liveFreshTraffic = (
   base: ScenarioEvidence["traffic"],
-  journeyMinutes: number,
+  speedKmh: number,
 ): ScenarioEvidence["traffic"] => ({
   ...base,
   status: "live",
@@ -45,7 +46,12 @@ const liveFreshTraffic = (
   data: {
     corridor: base.data?.corridor ?? base.source,
     direction: base.data?.direction ?? "Unknown",
-    journeyMinutes,
+    speedKmh,
+    observedMinutes: 1,
+    coveredKm: 1,
+    routeKm: 2,
+    coveragePercent: 50,
+    matchedLinks: 1,
   },
 })
 
@@ -73,8 +79,9 @@ describe("compareScenarios", () => {
       historicDemand: historicDemandEnvelope,
     })
 
-    expect(result.trafficLead).toBe("a")
-    expect(result.trafficDeltaMinutes).toBe(fixtureTrafficDeltaMinutes)
+    // The higher observed speed leads: St James's (B).
+    expect(result.trafficLead).toBe("b")
+    expect(result.trafficDeltaKmh).toBe(fixtureTrafficDeltaKmh)
     expect(result.crowdingDifference).toBe(fixtureCrowdingDifference)
     expect(JSON.stringify(result)).not.toMatch(/recommend|dispatch|triage|send the/i)
   })
@@ -131,34 +138,34 @@ describe("compareScenarios", () => {
 
   it("resolves confidence high when live fresh traffic and crowding are both comparable", () => {
     const a = withCrowding(
-      withTraffic(scenarios.a, liveFreshTraffic(scenarios.a.traffic, 12)),
+      withTraffic(scenarios.a, liveFreshTraffic(scenarios.a.traffic, 40)),
       { ...scenarios.a.crowding, status: "replayed" },
     )
     const b = withCrowding(
-      withTraffic(scenarios.b, liveFreshTraffic(scenarios.b.traffic, 18)),
+      withTraffic(scenarios.b, liveFreshTraffic(scenarios.b.traffic, 30)),
       { ...scenarios.b.crowding, status: "replayed" },
     )
 
     const result = compareScenarios(a, b)
     expect(result.confidence).toBe("high")
     expect(result.trafficLead).toBe("a")
-    expect(result.trafficDeltaMinutes).toBe(6)
+    expect(result.trafficDeltaKmh).toBe(10)
   })
 
-  it("resolves confidence limited when corridor times exist but evidence is not live-fresh", () => {
+  it("resolves confidence limited when corridor speeds exist but evidence is not live-fresh", () => {
     const result = compareScenarios(scenarios.a, scenarios.b)
     expect(result.confidence).toBe("limited")
-    expect(result.trafficDeltaMinutes).toBe(fixtureTrafficDeltaMinutes)
+    expect(result.trafficDeltaKmh).toBe(fixtureTrafficDeltaKmh)
   })
 
-  it("resolves confidence insufficient when corridor journey times are not comparable", () => {
+  it("resolves confidence insufficient when corridor speeds are not comparable", () => {
     const a = withTraffic(scenarios.a, unavailableTraffic(scenarios.a.traffic))
     const b = withTraffic(scenarios.b, unavailableTraffic(scenarios.b.traffic))
 
     const result = compareScenarios(a, b)
     expect(result.confidence).toBe("insufficient")
     expect(result.trafficLead).toBeUndefined()
-    expect(result.trafficDeltaMinutes).toBeUndefined()
+    expect(result.trafficDeltaKmh).toBeUndefined()
   })
 
   it("keeps crowding as a signed difference rather than a destination rank", () => {

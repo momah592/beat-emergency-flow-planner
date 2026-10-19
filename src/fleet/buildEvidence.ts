@@ -1,25 +1,25 @@
-import { getTransitContext } from "../data/adapters";
+import { getPathwayTraffic, getTransitContext } from "../data/adapters";
 import { inmoEnvelopeFor } from "../data/fixtures";
-import { loadScenarioEvidence } from "../data/loadScenarioEvidence";
 import { sources } from "../data/sourceRegistry";
-import type { EvidenceEnvelope, Scenario, ScenarioEvidence } from "../domain/types";
+import { savedPathway } from "../data/tripsCorridor";
+import type { EvidenceEnvelope, Scenario, ScenarioEvidence, TrafficContext } from "../domain/types";
 import { HOSPITALS } from "./fixtures";
 import type { Incident, LatLng } from "./types";
 
-const NO_SOURCE_CAVEAT =
-  "No DCC TRIPS corridor or published INMO figure is mapped to this hospital yet, so no observed value is shown. Nothing is estimated in its place.";
-
-function unavailable<T>(source: { name: string; url: string }, retrievedAt: string): EvidenceEnvelope<T> {
-  return { source: source.name, sourceUrl: source.url, status: "unavailable", retrievedAt, caveat: NO_SOURCE_CAVEAT };
-}
+const noRoute = (): EvidenceEnvelope<TrafficContext> => ({
+  source: sources.trips.name,
+  sourceUrl: sources.trips.url,
+  status: "unavailable",
+  retrievedAt: new Date().toISOString(),
+  caveat: "No saved road route exists for this pathway, so no DCC TRIPS links can be matched to it. Nothing is estimated in its place.",
+});
 
 /**
  * Builds the evidence for one candidate hospital.
  *
- * Where a hospital is mapped to a scenario slot, the evidence comes from the
- * data layer's loadScenarioEvidence: live DCC TRIPS when the feed is reachable,
- * the saved public-data snapshot otherwise. Where it is not mapped, every layer
- * is returned as unavailable. No journey time or trolley count originates here.
+ * Road context is the observed speed on the DCC TRIPS links along the pathway's saved road route
+ * (live when the feed is reachable, the saved snapshot otherwise). Crowding is the saved INMO figure
+ * for this exact hospital. Transit is the network-wide NTA feed. No figure originates here.
  */
 export async function buildScenarioEvidence(
   incident: Incident,
@@ -34,29 +34,10 @@ export async function buildScenarioEvidence(
     namedHospital: hospital.name,
   };
 
-  if (!hospital.dataSlot) {
-    const retrievedAt = new Date().toISOString();
-    return {
-      scenario,
-      traffic: unavailable(sources.trips, retrievedAt),
-      crowding: inmoEnvelopeFor(hospital.name),
-      // The NTA feed is network-wide, so it does not depend on which hospital has a mapped corridor.
-      transit: await getTransitContext(),
-    };
-  }
+  const path = savedPathway(incident.id, hospitalId);
+  const [traffic, transit] = await Promise.all([path ? getPathwayTraffic(path) : Promise.resolve(noRoute()), getTransitContext()]);
 
-  // The data layer is keyed by scenario slot, so ask it for the slot that holds
-  // this hospital's corridor and then present it under the comparison slot.
-  const evidence = await loadScenarioEvidence({ ...scenario, id: hospital.dataSlot });
-  const note = incident.corridorNote;
-  const traffic = note && evidence.traffic.status !== "unavailable"
-    ? { ...evidence.traffic, caveat: `${note} ${evidence.traffic.caveat}` }
-    : evidence.traffic;
-
-  // Crowding is looked up by hospital name, so a figure is only ever shown for the hospital it was published for.
-  const crowding = inmoEnvelopeFor(hospital.name);
-
-  return { ...evidence, scenario, traffic, crowding };
+  return { scenario, traffic, crowding: inmoEnvelopeFor(hospital.name), transit };
 }
 
 /** Compass direction from scene to hospital, for map labelling only. */

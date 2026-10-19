@@ -1,7 +1,8 @@
 import type { EvidenceEnvelope, TrafficContext, TransitContext } from "../domain/types";
-import { scenarios } from "./fixtures";
 import { GTFSR_REASON_HEADER } from "./gtfsrProxy";
-import { gtfsrFeed, sources, tripsCorridorRoutes, tripsLiveFeed } from "./sourceRegistry";
+import tripsSampleCsv from "../../fixtures/trips-2015-sample.csv?raw";
+import { gtfsrFeed, sources, tripsLiveFeed, tripsSample, tripsSampleSavedAt } from "./sourceRegistry";
+import { linkKey, matchPath, measureCorridor, type CorridorMeasure, type LatLng } from "./tripsCorridor";
 
 const FETCH_TIMEOUT_MS = 4000;
 /** Successful feed responses are reused this long; failures only briefly, so recovery is quick. */
@@ -39,15 +40,16 @@ export function clearAdapterCache(): void {
   cache.clear();
 }
 
-type TripsRow = { timestamp: string; route: number; link: number; direction: number; accSeconds: number };
+type TripsRow = { timestamp: string; route: number; link: number; direction: number; seconds: number };
 
+/** Parses TRIPS CSV (Timestamp,Route,Link,Direction,STT,...). STT is the segment travel time in seconds. */
 export function parseTripsCsv(csv: string): TripsRow[] {
   const lines = csv.trim().split(/\r?\n/);
   const header = lines.shift()?.split(",").map((cell) => cell.trim());
   if (!header) return [];
   const col = (name: string) => header.indexOf(name);
-  const [iTime, iRoute, iLink, iDir, iAcc] = ["Timestamp", "Route", "Link", "Direction", "AccSTT"].map(col);
-  if ([iTime, iRoute, iLink, iDir, iAcc].some((i) => i < 0)) return [];
+  const [iTime, iRoute, iLink, iDir, iStt] = ["Timestamp", "Route", "Link", "Direction", "STT"].map(col);
+  if ([iTime, iRoute, iLink, iDir, iStt].some((i) => i < 0)) return [];
 
   return lines
     .map((line) => line.split(",").map((cell) => cell.trim()))
@@ -56,48 +58,80 @@ export function parseTripsCsv(csv: string): TripsRow[] {
       route: Number(cells[iRoute]),
       link: Number(cells[iLink]),
       direction: Number(cells[iDir]),
-      accSeconds: Number(cells[iAcc]),
+      seconds: Number(cells[iStt]),
     }))
-    .filter((row) => row.timestamp && [row.route, row.link, row.direction, row.accSeconds].every(Number.isFinite));
+    .filter((row) => row.timestamp && [row.route, row.link, row.direction, row.seconds].every(Number.isFinite));
 }
 
-/**
- * Builds a live envelope from the newest rows for one route/direction, or returns
- * undefined if the feed does not contain that route. AccSTT accumulates along the
- * route, so the value on the highest reported link is the reported journey total.
- */
-export function tripsEnvelopeFromCsv(
-  csv: string,
-  scenarioId: "a" | "b",
-  retrievedAt: string,
-): EvidenceEnvelope<TrafficContext> | undefined {
-  const { route, direction } = tripsCorridorRoutes[scenarioId];
-  const rows = parseTripsCsv(csv).filter((row) => row.route === route && row.direction === direction);
-  if (rows.length === 0) return undefined;
+/** The newest reading for each link, as a map of link key to segment seconds. */
+export function latestReadings(rows: TripsRow[]): { readings: Map<string, number>; timestamp?: string } {
+  const newest = new Map<string, TripsRow>();
+  for (const row of rows) {
+    const key = linkKey(row.route, row.link, row.direction);
+    const held = newest.get(key);
+    if (!held || row.timestamp > held.timestamp) newest.set(key, row);
+  }
+  const readings = new Map([...newest].map(([key, row]) => [key, row.seconds]));
+  const timestamp = [...newest.values()].map((row) => row.timestamp).sort().at(-1);
+  return { readings, timestamp };
+}
 
-  const latestTimestamp = rows.map((row) => row.timestamp).sort().at(-1)!;
-  const latest = rows.filter((row) => row.timestamp === latestTimestamp);
-  const lastLink = latest.reduce((max, row) => (row.link > max.link ? row : max));
+const noCoverage = (retrievedAt: string): EvidenceEnvelope<TrafficContext> => ({
+  source: sources.trips.name,
+  sourceUrl: sources.trips.url,
+  status: "unavailable",
+  retrievedAt,
+  caveat: "No DCC TRIPS link lies along this pathway (it uses roads TRIPS does not cover), so no road reading is shown. Not estimated.",
+});
 
+function corridorEnvelope(
+  measure: CorridorMeasure,
+  base: Pick<EvidenceEnvelope<TrafficContext>, "status" | "retrievedAt" | "observedAt">,
+  note: string,
+): EvidenceEnvelope<TrafficContext> {
   return {
     source: sources.trips.name,
     sourceUrl: sources.trips.url,
-    status: "live",
-    retrievedAt,
-    // The feed's Timestamp (e.g. 20261004-1407) carries no timezone, so observedAt and
-    // freshnessSeconds are deliberately left undefined rather than guessed.
-    caveat: `Live TRIPS route ${route} direction ${direction}: accumulated travel time over ${latest.length} reported links, source timestamp ${latestTimestamp} (no timezone given). Corridor is a provisional proxy corridor.`,
+    ...base,
+    caveat:
+      `${note} Observed on ${measure.matchedLinks} TRIPS link${measure.matchedLinks === 1 ? "" : "s"} covering ${measure.coveredKm} km ` +
+      `(${measure.coveragePercent}% of this ${measure.routeKm} km route). TRIPS does not cover the rest, so this is not a full journey time. ` +
+      "Speed reflects road type as well as congestion.",
     data: {
-      corridor: `TRIPS route ${route} (provisional proxy corridor)`,
-      direction: `Direction ${direction}`,
-      journeyMinutes: Math.round((lastLink.accSeconds / 60) * 10) / 10,
+      corridor: `TRIPS routes ${measure.routes.join(", ")} along the pathway`,
+      direction: "In the direction of travel",
+      speedKmh: measure.speedKmh,
+      observedMinutes: measure.observedMinutes,
+      coveredKm: measure.coveredKm,
+      routeKm: measure.routeKm,
+      coveragePercent: measure.coveragePercent,
+      matchedLinks: measure.matchedLinks,
     },
   };
 }
 
-function fixtureFallback(scenarioId: "a" | "b", reason: string): EvidenceEnvelope<TrafficContext> {
-  const fixture = scenarios[scenarioId].traffic;
-  return { ...fixture, caveat: `Live feed not used (${reason}). ${fixture.caveat}` };
+/**
+ * Live envelope for one pathway from a TRIPS CSV body, or undefined if the feed has no reading on
+ * any link along it. The feed's Timestamp carries no timezone, so observedAt and freshnessSeconds are
+ * left undefined rather than guessed.
+ */
+export function tripsEnvelopeFromCsv(csv: string, path: LatLng[], retrievedAt: string): EvidenceEnvelope<TrafficContext> | undefined {
+  const { readings, timestamp } = latestReadings(parseTripsCsv(csv));
+  const measure = measureCorridor(path, readings);
+  if (!measure) return undefined;
+  return corridorEnvelope(measure, { status: "live", retrievedAt }, `Live DCC TRIPS, newest source timestamp ${timestamp ?? "unknown"} (no timezone given).`);
+}
+
+/** The saved 2015 TRIPS snapshot, measured along the same pathway. Marked as a saved snapshot, never as current. */
+export function savedTripsEnvelope(path: LatLng[], reason: string): EvidenceEnvelope<TrafficContext> {
+  const { readings } = latestReadings(parseTripsCsv(tripsSampleCsv));
+  const measure = measureCorridor(path, readings);
+  if (!measure) return noCoverage(tripsSampleSavedAt);
+  return corridorEnvelope(
+    measure,
+    { status: "replayed", retrievedAt: tripsSampleSavedAt, observedAt: tripsSample.observedDate },
+    `Live feed not used (${reason}). ${tripsSample.label} (saved 4 Oct 2026), source timestamp ${tripsSample.rawTimestamp}, no timezone given. This is historical data, not current or live.`,
+  );
 }
 
 type TripsFetch = { ok: true; text: string; retrievedAt: string } | { ok: false; reason: string };
@@ -116,11 +150,15 @@ async function fetchTripsCsv(): Promise<TripsFetch> {
   }
 }
 
-/** Live DCC TRIPS with a guaranteed fallback to the replayed fixture. Never throws. */
-export async function getTrafficContext(scenarioId: "a" | "b"): Promise<EvidenceEnvelope<TrafficContext>> {
+/**
+ * Observed road context for one pathway: live DCC TRIPS when reachable, otherwise the saved snapshot.
+ * Pathways with no TRIPS link along them are unavailable, whichever source is used. Never throws.
+ */
+export async function getPathwayTraffic(path: LatLng[]): Promise<EvidenceEnvelope<TrafficContext>> {
+  if (matchPath(path).links.length === 0) return noCoverage(new Date().toISOString());
   const result = await memo("trips", fetchTripsCsv, (r) => (r.ok ? CACHE_OK_MS : CACHE_FAIL_MS));
-  if (!result.ok) return fixtureFallback(scenarioId, result.reason);
-  return tripsEnvelopeFromCsv(result.text, scenarioId, result.retrievedAt) ?? fixtureFallback(scenarioId, "route not found in response");
+  if (!result.ok) return savedTripsEnvelope(path, result.reason);
+  return tripsEnvelopeFromCsv(result.text, path, result.retrievedAt) ?? savedTripsEnvelope(path, "no reading on this pathway's links in the response");
 }
 
 function transitUnavailable(retrievedAt: string, reason: string): EvidenceEnvelope<TransitContext> {

@@ -31,10 +31,10 @@ export function withLive(evidence: ScenarioEvidence, layers: Layer[]): ScenarioE
   };
 }
 
-/** Forces a declared corridor to a given observed journey time. */
-export function withEqualJourney(evidence: ScenarioEvidence, minutes: number): ScenarioEvidence {
+/** Forces a declared corridor to a given observed speed. */
+export function withEqualJourney(evidence: ScenarioEvidence, speedKmh: number): ScenarioEvidence {
   if (!evidence.traffic.data) return evidence;
-  return { ...evidence, traffic: { ...evidence.traffic, data: { ...evidence.traffic.data, journeyMinutes: minutes } } };
+  return { ...evidence, traffic: { ...evidence.traffic, data: { ...evidence.traffic.data, speedKmh } } };
 }
 
 /** The evidence states the brief has to stay safe across. */
@@ -48,6 +48,6 @@ export function evidenceVariants(): { name: string; a: ScenarioEvidence; b: Scen
     { name: "crowding unavailable", a: withUnavailable(a, ["crowding"]), b: withUnavailable(b, ["crowding"]) },
     { name: "every layer unavailable", a: withUnavailable(a, allLayers), b: withUnavailable(b, allLayers) },
     { name: "one side only", a, b: withUnavailable(b, allLayers) },
-    { name: "identical journey times", a: withEqualJourney(a, 16), b: withEqualJourney(b, 16) },
+    { name: "identical observed speeds", a: withEqualJourney(a, 30), b: withEqualJourney(b, 30) },
   ];
 }

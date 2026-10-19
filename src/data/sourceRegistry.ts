@@ -38,21 +38,12 @@ export const gtfsrFeed = {
 } as const;
 
 /** Saved snapshot behind the replayed traffic fixture (fixtures/trips-2015-sample.csv). */
+/** When the saved TRIPS snapshot was captured. */
+export const tripsSampleSavedAt = "2026-10-04T13:23:00Z";
+
 export const tripsSample = {
   label: "2015 sample, saved snapshot",
-  proxyLabel: "provisional proxy corridor",
   file: "fixtures/trips-2015-sample.csv",
   rawTimestamp: "20151120-1606",
   observedDate: "2015-11-20",
 } as const;
-
-/**
- * Which TRIPS route/direction stands in for each declared corridor.
- * Provisional proxy corridor: chosen from routes.csv geometry (route 16 dir 1 starts ~0.7 km from
- * St Stephen's Green and runs north; route 37 dir 1 starts ~0.9 km away and runs west).
- * The team should confirm these before quoting them.
- */
-export const tripsCorridorRoutes: Record<"a" | "b", { route: number; direction: number }> = {
-  a: { route: 16, direction: 1 },
-  b: { route: 37, direction: 1 },
-};

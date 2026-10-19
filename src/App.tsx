@@ -53,7 +53,7 @@ const LiveBeatApp = () => {
               <summary>How to read this page</summary>
               <ol>
                 <li>Pick a simulated incident. The map shows the two pathways being compared.</li>
-                <li>Each pathway card shows <strong>road time</strong> and <strong>hospital crowding</strong> separately. They are never added together.</li>
+                <li>Each pathway card shows <strong>road speed</strong> and <strong>hospital crowding</strong> separately. They are never added together.</li>
                 <li>Every figure says where it came from and how old it is. “Unavailable” means we have no data. Nothing is estimated.</li>
                 <li>This is a planning simulation. People decide, not this page.</li>
               </ol>
@@ -129,14 +129,14 @@ function Pathways({ incident, result }: { incident: Incident; result: Comparison
       <PathwayCard evidence={b} accent="b" />
       <div className="diff" aria-label={`Differences for the simulated incident at ${incident.label}`}>
         <div className="diff-tile">
-          <span>Road time difference</span>
-          <strong>{result.trafficDeltaMinutes !== undefined ? `${result.trafficDeltaMinutes} min` : "n/a"}</strong>
+          <span>Road speed difference</span>
+          <strong>{result.trafficDeltaKmh !== undefined ? `${result.trafficDeltaKmh} km/h` : "n/a"}</strong>
         </div>
         <div className="diff-tile">
           <span>Bed-wait difference</span>
           <strong>{result.crowdingDifference !== undefined ? `${Math.abs(result.crowdingDifference)} patients` : "n/a"}</strong>
         </div>
-        <p className="diff-note">Differences only, no pick. Bed-wait context is a published daily count of patients waiting for beds, not an ED wait time or hospital capacity.</p>
+        <p className="diff-note">Differences only, no pick. Road speed is measured on the TRIPS-covered part of each route, not the whole route. Bed-wait context is a published daily count of patients waiting for beds, not an ED wait time or hospital capacity.</p>
       </div>
       <StatusStrip result={result} />
     </>

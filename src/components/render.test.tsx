@@ -17,7 +17,8 @@ describe("PathwayCard", () => {
     const html = renderToStaticMarkup(<PathwayCard evidence={scenarios.b} accent="b" />);
     expect(html).toContain("Road context");
     expect(html).toContain("Crowding context");
-    expect(html).toContain("18.3");
+    expect(html).toContain(`${scenarios.b.traffic.data!.speedKmh}<small> km/h`);
+    expect(html).toMatch(/\d+% of the [\d.]+ km route covered/);
     expect(html).toContain("10<small> patients waiting for beds");
     expect(html).toContain("saved snapshot");
     expect(html).toMatch(/Saved snapshot from/);
@@ -25,7 +26,7 @@ describe("PathwayCard", () => {
   it("shows Unavailable instead of a number when data is missing", () => {
     const html = renderToStaticMarkup(<PathwayCard evidence={noTraffic(noCrowding(scenarios.a))} accent="a" />);
     expect(html.match(/Unavailable/g)!.length).toBeGreaterThanOrEqual(2);
-    expect(html).not.toMatch(/\d+(\.\d+)?<small> min/);
+    expect(html).not.toMatch(/\d+(\.\d+)?<small> km\/h/);
     expect(html).not.toMatch(/patients waiting for beds<\/small>/);
   });
   it("labels the bed-wait figure precisely and never as ED wait time or capacity", () => {
@@ -65,9 +66,9 @@ describe("BriefPanel", () => {
     const html = renderToStaticMarkup(<BriefPanel brief={brief} />);
     expect(html).toContain("abstained");
     expect(html).toContain("Human review requested");
-    expect(html).not.toMatch(/shorter observed/i);
-    expect(html).not.toMatch(/Road time differs/);
-    expect(html).toContain("No comparable observed journey time");
+    expect(html).not.toMatch(/higher observed speed/i);
+    expect(html).not.toMatch(/Observed road speed differs/);
+    expect(html).toMatch(/no TRIPS reading along this pathway/i);
   });
 });
 

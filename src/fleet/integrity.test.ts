@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scenarios } from "../data/fixtures";
+import { savedPathway } from "../data/tripsCorridor";
 import { AMBULANCES, HOSPITALS, INCIDENTS, DEFAULT_INCIDENT_ID, incidentById } from "./fixtures";
 
 describe("fleet fixture integrity", () => {
@@ -18,10 +19,11 @@ describe("fleet fixture integrity", () => {
       expect(unit!.position).toEqual(incident.position);
     }
   });
-  it("every dataSlot points at a saved scenario, and each hospital with INMO data matches its name", () => {
-    for (const hospital of Object.values(HOSPITALS)) {
-      if (!hospital.dataSlot) continue;
-      expect(scenarios[hospital.dataSlot]).toBeDefined();
+  it("every pathway has a saved road route, and INMO data is matched by exact hospital name", () => {
+    for (const incident of INCIDENTS) {
+      for (const id of incident.candidateHospitalIds) {
+        expect(savedPathway(incident.id, id), `${incident.id}:${id}`).toBeDefined();
+      }
     }
     expect(scenarios.a.crowding.data?.hospital).toBe(HOSPITALS.beaumont.name);
     expect(scenarios.b.crowding.data?.hospital).toBe(HOSPITALS.stjames.name);
@@ -35,8 +37,8 @@ describe("fleet fixture integrity", () => {
       expect(lng).toBeLessThan(-6.0);
     }
   });
-  it("defaults to Tallaght and falls back to the first incident for an unknown id", () => {
-    expect(DEFAULT_INCIDENT_ID).toBe("tallaght");
-    expect(incidentById("nope").id).toBe("tallaght");
+  it("defaults to St Stephen's Green and falls back to the first incident for an unknown id", () => {
+    expect(DEFAULT_INCIDENT_ID).toBe("dublin2");
+    expect(incidentById("nope").id).toBe("dublin2");
   });
 });

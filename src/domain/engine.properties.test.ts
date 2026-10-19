@@ -20,14 +20,14 @@ function randomEvidence(next: () => number, base: ScenarioEvidence): ScenarioEvi
   const pick = <T,>(items: T[]) => items[Math.floor(next() * items.length)];
   const traffic: EvidenceEnvelope<NonNullable<ScenarioEvidence["traffic"]["data"]>> = (() => {
     const status = pick(STATUSES);
-    const minutes = Math.round(next() * 400) / 10;
+    const speed = Math.round(next() * 800) / 10;
     return status === "unavailable"
       ? { ...base.traffic, status, data: undefined, freshnessSeconds: undefined }
       : {
           ...base.traffic,
           status,
           freshnessSeconds: status === "live" ? Math.floor(next() * 900) : undefined,
-          data: { corridor: "c", direction: "d", journeyMinutes: minutes },
+          data: { corridor: "c", direction: "d", speedKmh: speed, observedMinutes: 1, coveredKm: 1, routeKm: 2, coveragePercent: 50, matchedLinks: 1 },
         };
   })();
   const crowdStatus = pick(STATUSES);
@@ -62,7 +62,7 @@ describe("compareScenarios properties (seeded, 300 random evidence pairs)", () =
     for (const { a, b } of cases) {
       const forward = compareScenarios(a, b);
       const swapped = compareScenarios(b, a);
-      expect(swapped.trafficDeltaMinutes).toBe(forward.trafficDeltaMinutes);
+      expect(swapped.trafficDeltaKmh).toBe(forward.trafficDeltaKmh);
       expect(swapped.confidence).toBe(forward.confidence);
       if (forward.trafficLead) expect(swapped.trafficLead).toBe(forward.trafficLead === "a" ? "b" : "a");
       else expect(swapped.trafficLead).toBeUndefined();
@@ -70,18 +70,18 @@ describe("compareScenarios properties (seeded, 300 random evidence pairs)", () =
     }
   });
 
-  it("names the genuinely shorter corridor and the exact gap", () => {
+  it("names the genuinely faster corridor and the exact gap", () => {
     for (const { a, b } of cases) {
       const r = compareScenarios(a, b);
-      const ta = a.traffic.data?.journeyMinutes;
-      const tb = b.traffic.data?.journeyMinutes;
+      const ta = a.traffic.data?.speedKmh;
+      const tb = b.traffic.data?.speedKmh;
       if (ta === undefined || tb === undefined) {
         expect(r.trafficLead).toBeUndefined();
-        expect(r.trafficDeltaMinutes).toBeUndefined();
+        expect(r.trafficDeltaKmh).toBeUndefined();
         expect(r.confidence).toBe("insufficient");
       } else {
-        expect(r.trafficDeltaMinutes).toBeCloseTo(Math.abs(ta - tb), 10);
-        expect(r.trafficLead).toBe(ta === tb ? undefined : ta < tb ? "a" : "b");
+        expect(r.trafficDeltaKmh).toBeCloseTo(Math.abs(ta - tb), 1);
+        expect(r.trafficLead).toBe(ta === tb ? undefined : ta > tb ? "a" : "b");
       }
     }
   });
@@ -138,11 +138,11 @@ describe("compareScenarios properties (seeded, 300 random evidence pairs)", () =
 });
 
 describe("engine edge cases", () => {
-  it("handles zero and equal journey times", () => {
-    const zero = (s: ScenarioEvidence): ScenarioEvidence => ({ ...s, traffic: { ...s.traffic, data: { ...s.traffic.data!, journeyMinutes: 0 } } });
+  it("handles zero and equal observed speeds", () => {
+    const zero = (s: ScenarioEvidence): ScenarioEvidence => ({ ...s, traffic: { ...s.traffic, data: { ...s.traffic.data!, speedKmh: 0 } } });
     const r = compareScenarios(zero(scenarios.a), zero(scenarios.b));
     expect(r.trafficLead).toBeUndefined();
-    expect(r.trafficDeltaMinutes).toBe(0);
+    expect(r.trafficDeltaKmh).toBe(0);
     expect(createPlanningBrief(r).summary.headline).toMatch(/no difference/i);
   });
 

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getTrafficContext, getTransitContext } from "./adapters";
-import { inmoEnvelopeFor, scenarios } from "./fixtures";
-import { loadScenarioEvidence } from "./loadScenarioEvidence";
+import { getPathwayTraffic, getTransitContext } from "./adapters";
+import { savedPathway } from "./tripsCorridor";
+import { buildScenarioEvidence } from "../fleet/buildEvidence";
+import { incidentById } from "../fleet/fixtures";
+import { inmoEnvelopeFor } from "./fixtures";
 import tripsCsv from "../../fixtures/trips-2015-sample.csv?raw";
 
 afterEach(() => {
@@ -15,7 +17,8 @@ describe("request sharing and caching", () => {
   it("fetches the transit feed once for both scenarios, not once each", async () => {
     const fetchMock = vi.fn(async (_url: string) => new Response(JSON.stringify(feed)));
     vi.stubGlobal("fetch", fetchMock);
-    await Promise.all([loadScenarioEvidence(scenarios.a.scenario), loadScenarioEvidence(scenarios.b.scenario)]);
+    const inc = incidentById("dublin2");
+    await Promise.all([buildScenarioEvidence(inc, "beaumont", "a"), buildScenarioEvidence(inc, "stjames", "b")]);
     const transitCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("/gtfsr/"));
     const tripsCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes("/trips/"));
     expect(transitCalls).toHaveLength(1);
@@ -26,11 +29,12 @@ describe("request sharing and caching", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(async () => new Response(tripsCsv));
     vi.stubGlobal("fetch", fetchMock);
-    await getTrafficContext("a");
-    await getTrafficContext("b");
+    const path = savedPathway("dublin2", "stjames")!;
+    await getPathwayTraffic(path);
+    await getPathwayTraffic(savedPathway("dublin2", "beaumont")!);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(61_000);
-    await getTrafficContext("a");
+    await getPathwayTraffic(path);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

@@ -1,14 +1,11 @@
-import type { CrowdingContext, EvidenceEnvelope, HistoricDemandContext, ScenarioEvidence } from "../domain/types";
+import type { CrowdingContext, EvidenceEnvelope, HistoricDemandContext, ScenarioEvidence, TransitContext } from "../domain/types";
 import dfbAggregate from "../../fixtures/dfb-aggregate.json";
 import inmoSnapshot from "../../fixtures/inmo-snapshot.json";
-import { sources, tripsSample } from "./sourceRegistry";
+import { savedTripsEnvelope } from "./adapters";
+import { sources } from "./sourceRegistry";
+import { savedPathway } from "./tripsCorridor";
 
 const transitSavedAt = "2026-10-04T14:20:00Z";
-const tripsSampleSavedAt = "2026-10-04T13:23:00Z";
-
-const sampleCaveat = (route: number, links: number) =>
-  `${tripsSample.label} (saved 4 Oct 2026): TRIPS route ${route} direction 1 (${tripsSample.proxyLabel}), accumulated travel time over ${links} links at source timestamp ${tripsSample.rawTimestamp}. ` +
-  "The source gives no timezone, so only the date is recorded as observedAt; freshnessSeconds is not available. This is historical data, not current or live.";
 
 const inmoCounts = inmoSnapshot.hospitals as Record<string, { trolley: number; ward: number }>;
 
@@ -35,19 +32,30 @@ export function inmoEnvelopeFor(hospital: string): EvidenceEnvelope<CrowdingCont
   };
 }
 
+const transitUnavailable = (): EvidenceEnvelope<TransitContext> => ({
+  source: sources.gtfs.name,
+  sourceUrl: sources.gtfs.url,
+  status: "unavailable",
+  retrievedAt: transitSavedAt,
+  caveat: "No NTA GTFS-R reading captured in this saved fixture, so transit context is not shown. Never used as a road-speed or congestion estimate.",
+});
+
+function savedScenario(id: "a" | "b", name: string, hospital: string, hospitalId: string): ScenarioEvidence {
+  return {
+    scenario: { id, name, declaredCorridor: `St Stephen's Green to ${hospital}`, namedHospital: hospital },
+    traffic: savedTripsEnvelope(savedPathway("dublin2", hospitalId)!, "saved demonstration"),
+    crowding: inmoEnvelopeFor(hospital),
+    transit: transitUnavailable(),
+  };
+}
+
+/**
+ * Fully saved evidence for the two St Stephen's Green pathways, computed from the saved TRIPS snapshot
+ * and saved routes. Used by tests and as a reference for the replayed state. No live data.
+ */
 export const scenarios: Record<"a" | "b", ScenarioEvidence> = {
-  a: {
-    scenario: { id: "a", name: "Scenario A", declaredCorridor: "Dublin 2 to northbound corridor", namedHospital: "Beaumont Hospital" },
-    traffic: { source: sources.trips.name, sourceUrl: sources.trips.url, status: "replayed", retrievedAt: tripsSampleSavedAt, observedAt: tripsSample.observedDate, caveat: sampleCaveat(16, 6), data: { corridor: "TRIPS route 16 (provisional proxy corridor)", direction: "Direction 1", journeyMinutes: 2.4 } },
-    crowding: inmoEnvelopeFor("Beaumont Hospital"),
-    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: transitSavedAt, caveat: "No NTA GTFS-R reading captured in this saved fixture, so transit context is not shown. Never used as a road-speed or congestion estimate." },
-  },
-  b: {
-    scenario: { id: "b", name: "Scenario B", declaredCorridor: "Dublin 2 to westbound corridor", namedHospital: "St James's Hospital" },
-    traffic: { source: sources.trips.name, sourceUrl: sources.trips.url, status: "replayed", retrievedAt: tripsSampleSavedAt, observedAt: tripsSample.observedDate, caveat: sampleCaveat(37, 7), data: { corridor: "TRIPS route 37 (provisional proxy corridor)", direction: "Direction 1", journeyMinutes: 18.3 } },
-    crowding: inmoEnvelopeFor("St James's Hospital"),
-    transit: { source: sources.gtfs.name, sourceUrl: sources.gtfs.url, status: "unavailable", retrievedAt: transitSavedAt, caveat: "No NTA GTFS-R reading captured in this saved fixture, so transit context is not shown. Never used as a road-speed or congestion estimate." },
-  },
+  a: savedScenario("a", "Scenario A", "Beaumont Hospital", "beaumont"),
+  b: savedScenario("b", "Scenario B", "St James's Hospital", "stjames"),
 };
 
 export const dfbContext: HistoricDemandContext = {

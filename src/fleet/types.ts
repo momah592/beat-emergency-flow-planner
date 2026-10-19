@@ -12,12 +12,6 @@ export type Hospital = {
   name: string;
   shortName: string;
   position: LatLng;
-  /**
-   * The scenario in src/data/fixtures.ts whose DCC TRIPS corridor and published
-   * INMO figure describe this pathway. Absent when no public source covers it,
-   * in which case the hospital has no evidence rather than invented numbers.
-   */
-  dataSlot?: "a" | "b";
 };
 
 export type Incident = {
@@ -31,8 +25,6 @@ export type Incident = {
   candidateHospitalIds: [string, string];
   /** Declared pathway names for A and B. Falls back to each hospital's short name. */
   pathways?: [string, string];
-  /** Shown on the traffic evidence when the saved corridor is a stand-in for this scene. */
-  corridorNote?: string;
   /** DFB station area whose historical aggregate is shown as context. Absent means all areas. */
   dfbStationArea?: string;
 };

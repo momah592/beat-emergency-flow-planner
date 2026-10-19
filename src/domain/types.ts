@@ -11,10 +11,23 @@ export type EvidenceEnvelope<T> = {
   data?: T;
 };
 
+/**
+ * Observed road context for a pathway. DCC TRIPS covers only part of the network, so this is the
+ * observed speed on the TRIPS links that lie along the pathway and how much of the route they cover.
+ * It is never a full journey time.
+ */
 export type TrafficContext = {
   corridor: string;
   direction: string;
-  journeyMinutes: number;
+  /** Observed average speed on the covered links, in km/h. */
+  speedKmh: number;
+  /** Observed travel time summed over the covered links only. */
+  observedMinutes: number;
+  coveredKm: number;
+  routeKm: number;
+  /** Share of the route that the covered links represent. */
+  coveragePercent: number;
+  matchedLinks: number;
 };
 
 export type TransitContext = {
@@ -70,9 +83,9 @@ export type HistoricDemandLayer = {
 
 export type ComparisonResult = {
   scenarios: [ScenarioEvidence, ScenarioEvidence];
-  /** Scenario id with the shorter observed corridor journey; undefined if equal or incomparable. Not a destination pick. */
+  /** Scenario id with the higher observed speed on its covered corridor; undefined if equal or incomparable. Not a destination pick. */
   trafficLead?: "a" | "b";
-  trafficDeltaMinutes?: number;
+  trafficDeltaKmh?: number;
   /** Scenario A bed-wait count minus Scenario B; undefined if either side missing. Not capacity. */
   crowdingDifference?: number;
   transit: TransitComparisonLayer;

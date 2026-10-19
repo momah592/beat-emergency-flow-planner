@@ -119,13 +119,14 @@ export const compareScenarios = (
   const trafficComparable = aTraffic !== undefined && bTraffic !== undefined
   const crowdingComparable = aCrowding !== undefined && bCrowding !== undefined
 
-  const trafficDeltaMinutes = trafficComparable
-    ? Math.abs(aTraffic.journeyMinutes - bTraffic.journeyMinutes)
+  // Observed speed on each pathway's TRIPS-covered links. The higher speed is the lighter corridor.
+  const trafficDeltaKmh = trafficComparable
+    ? Math.round(Math.abs(aTraffic.speedKmh - bTraffic.speedKmh) * 10) / 10
     : undefined
 
-  const trafficLead = !trafficComparable || aTraffic.journeyMinutes === bTraffic.journeyMinutes
+  const trafficLead = !trafficComparable || aTraffic.speedKmh === bTraffic.speedKmh
     ? undefined
-    : aTraffic.journeyMinutes < bTraffic.journeyMinutes
+    : aTraffic.speedKmh > bTraffic.speedKmh
       ? "a"
       : "b"
 
@@ -144,7 +145,7 @@ export const compareScenarios = (
   return {
     scenarios: [a, b],
     trafficLead,
-    trafficDeltaMinutes,
+    trafficDeltaKmh,
     crowdingDifference,
     transit,
     historicDemand,
