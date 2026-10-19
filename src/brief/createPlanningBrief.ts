@@ -2,7 +2,7 @@ import type { ComparisonResult, EvidenceEnvelope } from "../domain/types";
 import type { BriefClaim, BriefSummary, ClaimBasis, PlanningBrief } from "./types";
 
 export const DISCLAIMER =
-  "This is a simulated planning comparison for review only. It is not a dispatch, destination, triage or clinical recommendation. Final decisions rest with dispatch and clinical teams.";
+  "This is a planning simulation; dispatcher approval required. This is a simulated planning comparison for review only. It is not a dispatch, destination, triage or clinical recommendation. Final decisions rest with dispatch and clinical teams.";
 
 /** What the sources do and do not measure. These hold however fresh the feed is. */
 const STANDING_LIMITATIONS = [
@@ -16,7 +16,7 @@ function basisOf(...envelopes: EvidenceEnvelope<unknown>[]): ClaimBasis[] {
   const basis: ClaimBasis[] = [];
 
   for (const envelope of envelopes) {
-    const key = `${envelope.source}|${envelope.retrievedAt}|${envelope.observedAt ?? ""}`;
+    const key = `${envelope.source}|${envelope.status}|${envelope.retrievedAt}|${envelope.observedAt ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     basis.push({
