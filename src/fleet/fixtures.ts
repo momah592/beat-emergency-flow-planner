@@ -33,28 +33,15 @@ export const HOSPITALS: Record<string, Hospital> = {
     name: "Tallaght University Hospital",
     shortName: "Tallaght University Hospital",
     position: [53.2886, -6.3787],
-    // Traffic uses the saved proxy corridor in slot "a". No INMO figure is captured for this
-    // hospital, so buildScenarioEvidence drops the slot's crowding rather than mislabelling it.
+    // Traffic uses the saved proxy corridor in slot "a". Crowding is looked up by hospital name in
+    // fixtures/inmo-snapshot.json, so it stays unavailable until a figure for this hospital is added.
     dataSlot: "a",
-  },
-  mater: {
-    id: "mater",
-    name: "Mater Misericordiae University Hospital",
-    shortName: "Mater",
-    position: [53.3597, -6.2659],
-  },
-  vincents: {
-    id: "vincents",
-    name: "St Vincent's University Hospital",
-    shortName: "St Vincent's",
-    position: [53.3157, -6.2114],
   },
 };
 
 export const AMBULANCES: Ambulance[] = [
   { id: "dfb11", callsign: "DFB 11", position: [53.3382, -6.2591], status: "on scene" },
   { id: "dfb31", callsign: "DFB 31", position: [53.2862, -6.3641], status: "on scene" },
-  { id: "dfb23", callsign: "DFB 23", position: [53.347, -6.232], status: "on scene" },
   { id: "dfb07", callsign: "DFB 07", position: [53.351, -6.258], status: "available" },
   { id: "dfb15", callsign: "DFB 15", position: [53.333, -6.265], status: "available" },
   { id: "dfb04", callsign: "DFB 04", position: [53.3465, -6.294], status: "available" },
@@ -80,14 +67,6 @@ export const INCIDENTS: Incident[] = [
     position: [53.3382, -6.2591],
     ambulanceId: "dfb11",
     candidateHospitalIds: ["beaumont", "stjames"],
-  },
-  {
-    id: "docklands",
-    label: "Docklands",
-    area: "Dublin 1",
-    position: [53.347, -6.232],
-    ambulanceId: "dfb23",
-    candidateHospitalIds: ["mater", "vincents"],
   },
 ];
 

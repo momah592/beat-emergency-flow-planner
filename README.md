@@ -24,7 +24,7 @@ TRIPS and NTA GTFS-R are used when reachable (see `.env.example`).
 data adapters -> EvidenceEnvelope -> compareScenarios -> ComparisonResult -> planning brief -> UI + map
 ```
 
-- An **incident** (Tallaght, St Stephen's Green, Docklands) resolves to two candidate hospitals, which become Scenario A
+- An **incident** (Tallaght or St Stephen's Green) resolves to two candidate hospitals, which become Scenario A
   and B for the engine.
 - Road and crowding context stay separate. They are never merged into one score.
 - The brief cites a source and time for every claim, lists uncertainty separately, and **abstains** when the two

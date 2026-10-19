@@ -1,8 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_INCIDENT_ID, HOSPITALS, incidentById } from "./fixtures";
+import type { Hospital } from "./types";
 import { buildScenarioEvidence } from "./buildEvidence";
 
-afterEach(() => vi.unstubAllGlobals());
+// A hospital with no mapped TRIPS corridor, used to exercise the "no data slot" path.
+const UNMAPPED: Hospital = { id: "unmapped", name: "Unmapped Test Hospital", shortName: "Unmapped", position: [53.34, -6.26] };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  delete HOSPITALS[UNMAPPED.id];
+});
 
 describe("buildScenarioEvidence", () => {
   const offline = () => vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
@@ -42,14 +49,16 @@ describe("buildScenarioEvidence", () => {
   it("still uses the network-wide transit feed for a hospital with no mapped corridor", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) =>
       String(url).includes("/gtfsr/") ? new Response(JSON.stringify({ header: { timestamp: 1790000000 }, entity: [{ trip_update: {} }] })) : Promise.reject(new Error("down"))));
-    const x = await buildScenarioEvidence(incidentById("docklands"), "mater", "a");
+    HOSPITALS[UNMAPPED.id] = UNMAPPED;
+    const x = await buildScenarioEvidence(incidentById("tallaght"), UNMAPPED.id, "a");
     expect(x.transit.status).toBe("live");
     expect(x.traffic.status).toBe("unavailable");
   });
 
   it("returns unavailable evidence for a hospital with no data slot", async () => {
     offline();
-    const x = await buildScenarioEvidence(incidentById("docklands"), "mater", "a");
+    HOSPITALS[UNMAPPED.id] = UNMAPPED;
+    const x = await buildScenarioEvidence(incidentById("tallaght"), UNMAPPED.id, "a");
     expect(x.traffic.status).toBe("unavailable");
     expect(x.crowding.status).toBe("unavailable");
   });
