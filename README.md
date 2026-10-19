@@ -1,11 +1,16 @@
 # Beat
 
-Beat is a **Dublin emergency-flow planning simulator** for Build for Ireland.
+**A Dublin emergency-flow planning simulator.** For a simulated incident, Beat compares two declared hospital pathways
+using open public data and shows how road conditions and hospital crowding trade off, with the source, status and
+timestamp of every figure. Built for the Build for Ireland hackathon.
 
-Given a **simulated incident**, it compares two **pre-declared pathways** using public data: observed corridor journey
-time (road context) and published trolley counts (crowding context). It shows differences and trade-offs, with the
-source, status and timestamp of every figure. It does **not** dispatch ambulances, pick a hospital, triage, or give
-clinical guidance. Final decisions stay with dispatch and clinical teams. See `AGENTS.md` for the full contract.
+![Beat comparing two pathways from a simulated incident at St Stephen's Green](docs/screenshot-compare.png)
+
+It does **not** dispatch ambulances, pick a hospital, triage, or give clinical guidance. It is a planning prototype, and
+final decisions stay with dispatch and clinical teams. See `AGENTS.md` for the full contract.
+
+**Stack:** React, TypeScript, Vite, Leaflet, Vitest (191 tests). **Data:** DCC TRIPS, INMO Trolley Watch, NTA
+GTFS-Realtime and Dublin Fire Brigade open data.
 
 ## Start
 
@@ -34,6 +39,8 @@ data adapters -> EvidenceEnvelope -> compareScenarios -> ComparisonResult -> pla
 - Road and crowding stay separate. They are never merged into one score.
 - The brief cites a source and time for every claim, lists uncertainty separately, and **abstains** when the two
   pathways cannot be compared.
+
+![The planning brief: summary, claims with sources, uncertainty and the boundary statement](docs/screenshot-brief.png)
 
 ## Product rules
 

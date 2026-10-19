@@ -9,7 +9,7 @@ import { formatTimestamp } from "./formatTime";
 export function BriefPanel({ brief }: { brief: PlanningBrief }) {
   const { summary } = brief;
   return (
-    <section className={`block brief${summary.abstained ? " abstained" : ""}`}>
+    <section id="brief" className={`block brief${summary.abstained ? " abstained" : ""}`}>
       <div className="section-heading">
         <div>
           <p className="eyebrow">Reviewable output</p>
