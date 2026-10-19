@@ -8,7 +8,7 @@ import { formatTimestamp } from "./formatTime";
 export function BriefPanel({ brief }: { brief: PlanningBrief }) {
   const { summary } = brief;
   return (
-    <section className={`section brief${summary.abstained ? " abstained" : ""}`}>
+    <section className={`block brief${summary.abstained ? " abstained" : ""}`}>
       <div className="section-heading">
         <div>
           <p className="eyebrow">Reviewable output</p>
@@ -53,7 +53,10 @@ export function BriefPanel({ brief }: { brief: PlanningBrief }) {
       <div className="uncertainty">
         <ul>
           {brief.uncertainty.length
-            ? brief.uncertainty.map((item) => <li key={item}>{item}</li>)
+            ? brief.uncertainty.map((item) => {
+                const cut = item.indexOf(": ");
+                return <li key={item}>{cut > 0 ? <><strong>{item.slice(0, cut)}</strong> {item.slice(cut + 2)}</> : item}</li>;
+              })
             : <li>No stale or unavailable inputs reported.</li>}
         </ul>
       </div>

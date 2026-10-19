@@ -12,7 +12,10 @@ export function EvidenceCard({ title, role, evidence }: Props) {
       <p className="role">{role}</p>
       <a href={evidence.sourceUrl} target="_blank" rel="noreferrer">{evidence.source}</a>
       <p className="freshness">{freshnessLabel(evidence)}</p>
-      <p>{evidence.caveat}</p>
+      <details className="caveat">
+        <summary>Caveat</summary>
+        <p>{evidence.caveat}</p>
+      </details>
       <dl>
         <div><dt>Retrieved</dt><dd>{time(evidence.retrievedAt)}</dd></div>
         <div><dt>Observed</dt><dd>{time(evidence.observedAt)}</dd></div>

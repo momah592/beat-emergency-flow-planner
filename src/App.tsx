@@ -24,75 +24,92 @@ export default function App() {
   return <LiveBeatApp />;
 }
 
+function Logo() {
+  return (
+    <svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="currentColor" />
+      <path d="M5 17h5l3-8 5 15 3-9 2 2h4" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const LiveBeatApp = () => {
   const [incidentId, setIncidentId] = useState(DEFAULT_INCIDENT_ID);
   const state = useComparison(incidentId);
+  const active = INCIDENTS.find((i) => i.id === incidentId) ?? INCIDENTS[0];
 
   return (
     <>
-      <div className="banner" role="note">{BANNER}</div>
-      <main>
-        <header className="hero">
-          <p className="eyebrow">Build for Ireland</p>
-          <h1>Beat</h1>
-          <p className="lede">A simulated emergency-flow planning comparison for Dublin.</p>
-        </header>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand"><Logo /><span>Beat</span><em>Dublin emergency-flow planning</em></div>
+          <span className="sim-chip">Planning simulation</span>
+        </div>
+        <p className="banner" role="note">{BANNER}</p>
+      </header>
 
-        <section className="section">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Simulated incident · fixed demonstration scene</p>
-              <h2>Simulated high-acuity incident, {INCIDENTS.find((i) => i.id === incidentId)?.label}</h2>
+      <main>
+        <section className="intro">
+          <div className="intro-copy">
+            <p className="eyebrow">Simulated incident · fixed demonstration scene</p>
+            <h1>High-acuity incident, {active.label}</h1>
+            <p className="question">{DEMO_QUESTION}</p>
+          </div>
+          <div className="intro-side">
+            <div className="segmented" role="group" aria-label="Simulated incident location">
+              {INCIDENTS.map((incident) => (
+                <button
+                  key={incident.id}
+                  type="button"
+                  className={incident.id === incidentId ? "seg is-active" : "seg"}
+                  aria-pressed={incident.id === incidentId}
+                  onClick={() => setIncidentId(incident.id)}
+                >
+                  {incident.label}<em>{incident.area}</em>
+                </button>
+              ))}
             </div>
             {state.phase === "ready" && <span className={`confidence ${state.result.confidence}`}>Evidence confidence: {state.result.confidence}</span>}
           </div>
-          <div className="incident-picker" role="group" aria-label="Simulated incident location">
-            {INCIDENTS.map((incident) => (
-              <button
-                key={incident.id}
-                type="button"
-                className={incident.id === incidentId ? "incident-button is-active" : "incident-button"}
-                onClick={() => setIncidentId(incident.id)}
-              >
-                {incident.label}
-                <em>{incident.area}</em>
-              </button>
-            ))}
-          </div>
-          <p className="question">{DEMO_QUESTION}</p>
-
-          {state.phase === "ready" ? (
-            <FleetMap incident={state.incident} result={state.result} />
-          ) : (
-            <div className="map map-placeholder">{state.phase === "error" ? "Evidence unavailable" : "Retrieving public-data evidence…"}</div>
-          )}
-          <div className="map-legend">
-            <span><i className="legend-line legend-a" /> Scenario A pathway</span>
-            <span><i className="legend-line legend-b" /> Scenario B pathway</span>
-            <span><i className="legend-scene" /> Simulated scene</span>
-            <span><i className="legend-dot" /> Simulated available unit</span>
-          </div>
         </section>
 
-        {state.phase === "loading" && <Skeleton />}
-
-        {state.phase === "error" && (
-          <section className="section brief abstained">
-            <h2>Evidence unavailable</h2>
-            <p>{state.message}</p>
-            <p className="small">Insufficient evidence. Human review requested. Nothing is estimated in its place.</p>
+        <div className="workspace">
+          <section className="card map-card" aria-label="Map">
+            {state.phase === "ready" ? (
+              <FleetMap incident={state.incident} result={state.result} />
+            ) : (
+              <div className="map map-placeholder">{state.phase === "error" ? "Evidence unavailable" : "Retrieving public-data evidence…"}</div>
+            )}
+            <div className="map-legend">
+              <span><i className="legend-line legend-a" /> Scenario A pathway</span>
+              <span><i className="legend-line legend-b" /> Scenario B pathway</span>
+              <span><i className="legend-scene" /> Simulated scene</span>
+              <span><i className="legend-dot" /> Simulated unit</span>
+            </div>
           </section>
-        )}
 
-        {state.phase === "ready" && <Readout incident={state.incident} result={state.result} />}
+          <div className="pathways">
+            {state.phase === "loading" && <><div className="pathway skeleton" /><div className="pathway skeleton" /></>}
+            {state.phase === "error" && (
+              <div className="card notice">
+                <h2>Evidence unavailable</h2>
+                <p>{state.message}</p>
+                <p className="small">Insufficient evidence. Human review requested. Nothing is estimated in its place.</p>
+              </div>
+            )}
+            {state.phase === "ready" && <Pathways incident={state.incident} result={state.result} />}
+          </div>
+        </div>
+
+        {state.phase === "ready" && <Detail result={state.result} />}
 
         <footer className="footer">
-          <p className="eyebrow">Data sources</p>
-          <p className="source-links">
+          <div className="source-links">
+            <span className="eyebrow">Data sources</span>
             {Object.values(sources).map((source) => (
               <a key={source.name} href={source.url} target="_blank" rel="noreferrer">{source.name}</a>
             ))}
-          </p>
+          </div>
           <p className="small">{BANNER}</p>
         </footer>
       </main>
@@ -100,7 +117,28 @@ const LiveBeatApp = () => {
   );
 };
 
-function Readout({ incident, result }: { incident: Incident; result: ComparisonResult }) {
+function Pathways({ incident, result }: { incident: Incident; result: ComparisonResult }) {
+  const [a, b] = result.scenarios;
+  return (
+    <>
+      <PathwayCard evidence={a} accent="a" />
+      <PathwayCard evidence={b} accent="b" />
+      <div className="diff" aria-label={`Differences for the simulated incident at ${incident.label}`}>
+        <div className="diff-tile">
+          <span>Road time difference</span>
+          <strong>{result.trafficDeltaMinutes !== undefined ? `${result.trafficDeltaMinutes} min` : "n/a"}</strong>
+        </div>
+        <div className="diff-tile">
+          <span>Bed-wait difference</span>
+          <strong>{result.crowdingDifference !== undefined ? `${Math.abs(result.crowdingDifference)} patients` : "n/a"}</strong>
+        </div>
+        <p className="diff-note">Differences only, no pick. Road and crowding are never combined into one score.</p>
+      </div>
+    </>
+  );
+}
+
+function Detail({ result }: { result: ComparisonResult }) {
   const [a, b] = result.scenarios;
   const brief = createPlanningBrief(result);
   const demand = result.historicDemand;
@@ -118,29 +156,11 @@ function Readout({ incident, result }: { incident: Incident; result: ComparisonR
 
   return (
     <>
-      <section className="section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Simulated incident at {incident.label}, {incident.area}</p>
-            <h2>Declared pathways</h2>
-          </div>
+      <section className="block">
+        <div className="block-head">
+          <h2>Evidence trail</h2>
+          <p className="small">Every signal with its source, status, observed and retrieval time. “Not supplied” is a valid value.</p>
         </div>
-        <div className="scenario-grid">
-          <PathwayCard evidence={a} accent="a" />
-          <PathwayCard evidence={b} accent="b" />
-        </div>
-        <p className="diff">
-          <strong>Differences only, no pick.</strong>{" "}
-          {result.trafficDeltaMinutes !== undefined ? `Road time differs by ${result.trafficDeltaMinutes} min.` : "Road time cannot be compared."}{" "}
-          {result.crowdingDifference !== undefined
-            ? `Bed-wait context differs by ${Math.abs(result.crowdingDifference)} patients.`
-            : "Bed-wait context cannot be compared (a source is unavailable)."}
-        </p>
-      </section>
-
-      <section className="section">
-        <h2>Evidence trail</h2>
-        <p className="small">Every signal with its source, status, observed and retrieval time. “Not supplied” is a valid value.</p>
         <div className="evidence-grid">
           <EvidenceCard title="Road: Scenario A" role="Core road-corridor journey time" evidence={a.traffic} />
           <EvidenceCard title="Road: Scenario B" role="Core road-corridor journey time" evidence={b.traffic} />
@@ -159,16 +179,5 @@ function Readout({ incident, result }: { incident: Incident; result: ComparisonR
 
       <BriefPanel brief={brief} />
     </>
-  );
-}
-
-function Skeleton() {
-  return (
-    <section className="section" aria-busy="true" aria-label="Loading evidence">
-      <div className="scenario-grid">
-        <div className="pathway skeleton" />
-        <div className="pathway skeleton" />
-      </div>
-    </section>
   );
 }
